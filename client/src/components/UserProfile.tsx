@@ -36,7 +36,7 @@ export default function UserProfile() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border border-primary/10">
-            <AvatarImage src={`https://avatars.dicebear.com/api/initials/${getInitials()}.svg`} alt={user.username} />
+            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getInitials()}`} alt={user.username} />
             <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
         </Button>

@@ -40,7 +40,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="text-center">
             <Avatar className="h-24 w-24 mx-auto border-2 border-primary/20">
-              <AvatarImage src={`https://avatars.dicebear.com/api/initials/${getInitials()}.svg`} alt={user.username} />
+              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getInitials()}`} alt={user.username} />
               <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
             </Avatar>
             <CardTitle className="mt-4">{user.name || user.username}</CardTitle>
