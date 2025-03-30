@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Download, BarChart2 } from "lucide-react";
+import { Loader2, ArrowLeft, Download } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -92,8 +92,6 @@ export default function ProfilePage() {
               </Button>
             </CardContent>
           </Card>
-
-
         </div>
       </div>
     </div>
