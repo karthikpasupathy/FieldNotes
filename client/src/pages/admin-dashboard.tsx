@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Redirect } from 'wouter';
-import { Loader2, Users, FileText, BarChart2, Calendar, RefreshCw } from 'lucide-react';
+import { Loader2, Users, FileText, BarChart2, Calendar, RefreshCw, LogOut } from 'lucide-react';
 import { queryClient, getQueryFn } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 // Type definitions
 interface UserCount {
@@ -37,19 +36,11 @@ interface UserActivity {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [timeFrame, setTimeFrame] = useState(30); // Default to 30 days
-
-  // Redirect if user is not an admin
-  if (!user?.isAdmin) {
-    toast({
-      title: "Access Denied",
-      description: "You don't have permission to access the admin dashboard.",
-      variant: "destructive"
-    });
-    return <Redirect to="/" />;
-  }
+  const [, setLocation] = useLocation();
+  
+  // No longer need to check admin status here as that's handled by the AdminRoute component
 
   // Queries for fetching dashboard data
   const { data: totalUsers, isLoading: loadingUsers } = useQuery<UserCount>({
@@ -109,6 +100,40 @@ export default function AdminDashboard() {
       title: "Data Refreshed",
       description: "Dashboard data has been updated.",
     });
+  };
+  
+  // Handler for admin logout
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Logged Out",
+          description: "You have been logged out of the admin panel.",
+        });
+        // Redirect to admin login page
+        setLocation('/admin-login');
+      } else {
+        toast({
+          title: "Logout Failed",
+          description: "There was an error logging out.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout Failed",
+        description: "There was an error logging out.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Format date for display
@@ -171,6 +196,10 @@ export default function AdminDashboard() {
           <Button onClick={refreshAllData} className="ml-2">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleLogout} className="ml-2">
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
           </Button>
         </div>
       </div>

@@ -1,7 +1,6 @@
-import { useAuth } from "@/hooks/use-auth";
+import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
-import NotFound from "@/pages/not-found";
 
 interface AdminRouteProps {
   path: string;
@@ -9,7 +8,32 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ path, component: Component }: AdminRouteProps) {
-  const { user, isLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if the user has admin privileges
+    async function checkAdminStatus() {
+      try {
+        // Try to fetch a simple admin endpoint
+        const response = await fetch("/api/admin/users/count");
+        
+        if (response.ok) {
+          setIsAdmin(true);
+        } else {
+          // If unauthorized, redirect to admin login
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkAdminStatus();
+  }, []);
 
   if (isLoading) {
     return (
@@ -21,20 +45,11 @@ export function AdminRoute({ path, component: Component }: AdminRouteProps) {
     );
   }
 
-  // If not logged in, redirect to login
-  if (!user) {
+  // If not admin, redirect to admin login
+  if (!isAdmin) {
     return (
       <Route path={path}>
-        <Redirect to="/auth" />
-      </Route>
-    );
-  }
-
-  // If logged in but not admin, show 404 (to hide the admin page existence)
-  if (!user.isAdmin) {
-    return (
-      <Route path={path}>
-        <NotFound />
+        <Redirect to="/admin-login" />
       </Route>
     );
   }

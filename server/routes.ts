@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, adminLoginSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
@@ -386,11 +386,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin dashboard routes
   
-  // Middleware to check if user is an admin
+  // Admin login endpoint (separate from regular user login)
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      // Simple admin credentials (replace with your own)
+      const ADMIN_USERNAME = "admin";
+      const ADMIN_PASSWORD = "admin123!";  // Sample password to share with you
+      
+      // Validate request using adminLoginSchema
+      const { username, password } = adminLoginSchema.parse(req.body);
+      
+      // Check if credentials match
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        // Store an admin token in a specific cookie
+        res.cookie('admin_token', 'valid', { 
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        
+        return res.status(200).json({ success: true });
+      } else {
+        // Credentials don't match
+        return res.status(401).json({ message: "Invalid admin credentials" });
+      }
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+  
+  // Admin logout endpoint
+  app.post("/api/admin/logout", isAdmin, (req, res) => {
+    try {
+      // Clear the admin token cookie
+      res.clearCookie('admin_token');
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Admin logout error:", error);
+      res.status(500).json({ message: "Failed to logout" });
+    }
+  });
+  
+  // Middleware to check if user is an admin (cookie-based or user property)
   function isAdmin(req: Request, res: Response, next: NextFunction) {
+    // Check for admin cookie
+    if (req.cookies && req.cookies.admin_token === 'valid') {
+      return next();
+    }
+    
+    // Fall back to checking user.isAdmin if authenticated
     if (req.isAuthenticated() && req.user?.isAdmin) {
       return next();
     }
+    
     res.status(403).json({ message: "Access denied: Admin privileges required" });
   }
   
