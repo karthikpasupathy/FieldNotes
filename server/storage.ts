@@ -7,13 +7,17 @@ import {
   type InsertUser,
   periodAnalyses,
   type PeriodAnalysis,
-  type InsertPeriodAnalysis
+  type InsertPeriodAnalysis,
+  userLogins,
+  type UserLogin,
+  type InsertUserLogin
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { Pool } from "pg";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db"; // Import pool from db.ts to ensure we use the same pool instance
+import { and, count, eq, gte, sql } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -39,6 +43,14 @@ export interface IStorage {
   getAnalysis(date: string, userId: number): Promise<string | null>;
   savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
   getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
+  recordUserLogin(userId: number): Promise<void>;
+  // Admin Analytics
+  getTotalUsers(): Promise<number>;
+  getActiveUsers(days: number): Promise<number>;
+  getTotalNotes(): Promise<number>;
+  getTotalAnalyses(): Promise<{dailyCount: number, weeklyCount: number, monthlyCount: number}>;
+  getSignupsByDate(days: number): Promise<{date: string, count: number}[]>;
+  getUserActivity(days: number): Promise<{username: string, noteCount: number, lastActive: Date}[]>;
   sessionStore: session.Store;
 }
 
@@ -46,18 +58,22 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private notes: Map<number, Note>;
   private periodAnalyses: Map<number, PeriodAnalysis>;
+  private userLogins: Map<number, UserLogin[]>;
   private userCurrentId: number;
   private noteCurrentId: number;
   private periodAnalysisCurrentId: number;
+  private userLoginCurrentId: number;
   sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
     this.notes = new Map();
     this.periodAnalyses = new Map();
+    this.userLogins = new Map();
     this.userCurrentId = 1;
     this.noteCurrentId = 1;
     this.periodAnalysisCurrentId = 1;
+    this.userLoginCurrentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     });
@@ -103,7 +119,9 @@ export class MemStorage implements IStorage {
       id,
       name: insertUser.name || null,
       resetToken: null,
-      resetTokenExpiry: null 
+      resetTokenExpiry: null,
+      isAdmin: false,
+      createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -595,6 +613,129 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error getting period analysis:`, error);
       return null;
+    }
+  }
+
+  async recordUserLogin(userId: number): Promise<void> {
+    try {
+      await this.executeQuery(
+        'INSERT INTO user_logins (user_id, timestamp) VALUES ($1, NOW())',
+        [userId]
+      );
+    } catch (error) {
+      console.error(`Error recording user login for user ${userId}:`, error);
+      // Don't throw error here, just log it - we don't want to break login flow
+    }
+  }
+
+  // Admin Analytics Methods
+  async getTotalUsers(): Promise<number> {
+    try {
+      const result = await this.executeQuery('SELECT COUNT(*) as count FROM users');
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error('Error getting total users count:', error);
+      return 0;
+    }
+  }
+
+  async getActiveUsers(days: number): Promise<number> {
+    try {
+      const result = await this.executeQuery(
+        `SELECT COUNT(DISTINCT user_id) as count 
+         FROM user_logins 
+         WHERE timestamp > NOW() - INTERVAL '${days} days'`
+      );
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error(`Error getting active users count for past ${days} days:`, error);
+      return 0;
+    }
+  }
+
+  async getTotalNotes(): Promise<number> {
+    try {
+      const result = await this.executeQuery('SELECT COUNT(*) as count FROM notes');
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error('Error getting total notes count:', error);
+      return 0;
+    }
+  }
+
+  async getTotalAnalyses(): Promise<{dailyCount: number, weeklyCount: number, monthlyCount: number}> {
+    try {
+      // Count daily analyses (notes with non-null analysis field)
+      const dailyResult = await this.executeQuery(
+        'SELECT COUNT(*) as count FROM notes WHERE analysis IS NOT NULL'
+      );
+      
+      // Count weekly analyses
+      const weeklyResult = await this.executeQuery(
+        "SELECT COUNT(*) as count FROM period_analyses WHERE period_type = 'week'"
+      );
+      
+      // Count monthly analyses
+      const monthlyResult = await this.executeQuery(
+        "SELECT COUNT(*) as count FROM period_analyses WHERE period_type = 'month'"
+      );
+      
+      return {
+        dailyCount: parseInt(dailyResult.rows[0].count, 10),
+        weeklyCount: parseInt(weeklyResult.rows[0].count, 10),
+        monthlyCount: parseInt(monthlyResult.rows[0].count, 10)
+      };
+    } catch (error) {
+      console.error('Error getting total analyses counts:', error);
+      return { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 };
+    }
+  }
+
+  async getSignupsByDate(days: number): Promise<{date: string, count: number}[]> {
+    try {
+      const result = await this.executeQuery(
+        `SELECT 
+          TO_CHAR(created_at, 'YYYY-MM-DD') as date,
+          COUNT(*) as count 
+         FROM users 
+         WHERE created_at > NOW() - INTERVAL '${days} days'
+         GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+         ORDER BY date DESC`
+      );
+      
+      return result.rows.map((row: any) => ({
+        date: row.date,
+        count: parseInt(row.count, 10)
+      }));
+    } catch (error) {
+      console.error(`Error getting signups by date for past ${days} days:`, error);
+      return [];
+    }
+  }
+
+  async getUserActivity(days: number): Promise<{username: string, noteCount: number, lastActive: Date}[]> {
+    try {
+      const result = await this.executeQuery(
+        `SELECT 
+          u.username,
+          COUNT(n.id) as note_count,
+          MAX(l.timestamp) as last_active
+         FROM users u
+         LEFT JOIN notes n ON u.id = n.user_id AND n.timestamp > NOW() - INTERVAL '${days} days'
+         LEFT JOIN user_logins l ON u.id = l.user_id
+         GROUP BY u.username
+         ORDER BY last_active DESC NULLS LAST
+         LIMIT 50`
+      );
+      
+      return result.rows.map((row: any) => ({
+        username: row.username,
+        noteCount: parseInt(row.note_count, 10),
+        lastActive: row.last_active ? new Date(row.last_active) : null
+      }));
+    } catch (error) {
+      console.error(`Error getting user activity for past ${days} days:`, error);
+      return [];
     }
   }
 }
