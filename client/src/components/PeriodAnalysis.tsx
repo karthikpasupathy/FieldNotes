@@ -151,26 +151,11 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   };
 
   const isLoading = (activeTab === 'week' && isWeeklyFetching) || (activeTab === 'month' && isMonthlyFetching);
-  const analysisContent = activeTab === 'week' ? weeklyAnalysis?.analysis : monthlyAnalysis?.analysis;
 
   return (
     <Card className="mb-6">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Period Analysis</CardTitle>
-          {analysisContent && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => regenerateAnalysis(activeTab)}
-              disabled={isLoading}
-              title="Regenerate analysis"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-lg">Period Analysis</CardTitle>
       </CardHeader>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
