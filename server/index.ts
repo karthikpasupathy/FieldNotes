@@ -43,8 +43,15 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    console.error(`[ERROR] ${err.stack || err.message || 'Unknown error'}`);
+    
+    res.status(status).json({ 
+      message, 
+      error: app.get('env') === 'development' ? err.stack : undefined 
+    });
+    
+    // Don't throw the error again - just log it
+    // This prevents the server from crashing
   });
 
   // importantly only setup vite in development and after

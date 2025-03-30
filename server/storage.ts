@@ -179,142 +179,235 @@ export class PostgresStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true
-    });
+    // Set up PostgreSQL session store with error handling
+    try {
+      this.sessionStore = new PostgresSessionStore({
+        pool,
+        createTableIfMissing: true,
+        // Error handling for session store
+        errorLog: (error) => {
+          console.error('[SESSION STORE ERROR]', error);
+        }
+      });
+      console.log("PostgreSQL session store initialized");
+    } catch (error) {
+      console.error("Failed to initialize PostgreSQL session store:", error);
+      // Fallback to memory store if PostgreSQL fails
+      console.warn("Falling back to in-memory session store");
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000 // 24h
+      });
+    }
+  }
+  
+  // Helper method to execute database queries with error handling
+  private async executeQuery(query: string, params: any[] = []): Promise<any> {
+    try {
+      return await pool.query(query, params);
+    } catch (error) {
+      console.error(`[DB ERROR] Query failed: ${query.substring(0, 100)}...`, error);
+      throw error;
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-    return result.rows[0] || undefined;
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE id = $1', [id]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user with id ${id}:`, error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    return result.rows[0] || undefined;
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE username = $1', [username]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user by username ${username}:`, error);
+      return undefined;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    return result.rows[0] || undefined;
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE email = $1', [email]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user by email:`, error);
+      return undefined;
+    }
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    const result = await pool.query('SELECT * FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()', [token]);
-    return result.rows[0] || undefined;
+    try {
+      const result = await this.executeQuery(
+        'SELECT * FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()', 
+        [token]
+      );
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error('Error getting user by reset token:', error);
+      return undefined;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
-    const result = await pool.query(
-      'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
-      [username, password, email, name || null]
-    );
-    return result.rows[0];
+    try {
+      const result = await this.executeQuery(
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+        [username, password, email, name || null]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user. Please try again later.');
+    }
   }
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
-    await pool.query(
-      'UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3',
-      [token, expiry, userId]
-    );
+    try {
+      await this.executeQuery(
+        'UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3',
+        [token, expiry, userId]
+      );
+    } catch (error) {
+      console.error(`Error updating reset token for user ${userId}:`, error);
+      throw new Error('Failed to update reset token. Please try again later.');
+    }
   }
 
   async updateUserPassword(userId: number, password: string): Promise<void> {
-    await pool.query(
-      'UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
-      [password, userId]
-    );
+    try {
+      await this.executeQuery(
+        'UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
+        [password, userId]
+      );
+    } catch (error) {
+      console.error(`Error updating password for user ${userId}:`, error);
+      throw new Error('Failed to update password. Please try again later.');
+    }
   }
 
   async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
-    let query = 'SELECT * FROM notes WHERE date = $1';
-    const params: any[] = [date];
+    try {
+      let query = 'SELECT * FROM notes WHERE date = $1';
+      const params: any[] = [date];
 
-    if (userId !== undefined) {
-      query += ' AND user_id = $2';
-      params.push(userId);
+      if (userId !== undefined) {
+        query += ' AND user_id = $2';
+        params.push(userId);
+      }
+
+      query += ' ORDER BY timestamp DESC';
+      
+      const result = await this.executeQuery(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting notes for date ${date}:`, error);
+      return [];
     }
-
-    query += ' ORDER BY timestamp DESC';
-    
-    const result = await pool.query(query, params);
-    return result.rows;
   }
 
   async getAllDates(userId?: number): Promise<string[]> {
-    let query = 'SELECT DISTINCT date FROM notes';
-    const params: any[] = [];
+    try {
+      let query = 'SELECT DISTINCT date FROM notes';
+      const params: any[] = [];
 
-    if (userId !== undefined) {
-      query += ' WHERE user_id = $1';
-      params.push(userId);
+      if (userId !== undefined) {
+        query += ' WHERE user_id = $1';
+        params.push(userId);
+      }
+
+      query += ' ORDER BY date DESC';
+      
+      const result = await this.executeQuery(query, params);
+      return result.rows.map(row => row.date);
+    } catch (error) {
+      console.error('Error getting all dates:', error);
+      return [];
     }
-
-    query += ' ORDER BY date DESC';
-    
-    const result = await pool.query(query, params);
-    return result.rows.map(row => row.date);
   }
 
   async createNote(note: InsertNote): Promise<Note> {
-    const { content, date, userId } = note;
-    const result = await pool.query(
-      'INSERT INTO notes (content, date, user_id, timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
-      [content, date, userId]
-    );
-    return result.rows[0];
+    try {
+      const { content, date, userId } = note;
+      const result = await this.executeQuery(
+        'INSERT INTO notes (content, date, user_id, timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
+        [content, date, userId]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating note:', error);
+      throw new Error('Failed to create note. Please try again later.');
+    }
   }
 
   async deleteNote(noteId: number, userId: number): Promise<boolean> {
-    const result = await pool.query(
-      'DELETE FROM notes WHERE id = $1 AND user_id = $2 RETURNING id',
-      [noteId, userId]
-    );
-    
-    return (result.rowCount as number) > 0;
+    try {
+      const result = await this.executeQuery(
+        'DELETE FROM notes WHERE id = $1 AND user_id = $2 RETURNING id',
+        [noteId, userId]
+      );
+      
+      return (result.rowCount as number) > 0;
+    } catch (error) {
+      console.error(`Error deleting note ${noteId}:`, error);
+      return false;
+    }
   }
 
   async getRecentDays(limit: number, userId?: number): Promise<{ date: string; count: number }[]> {
-    let query = `
-      SELECT date, COUNT(*) as count
-      FROM notes
-    `;
-    
-    const params: any[] = [];
-    
-    if (userId !== undefined) {
-      query += ' WHERE user_id = $1';
-      params.push(userId);
+    try {
+      let query = `
+        SELECT date, COUNT(*) as count
+        FROM notes
+      `;
+      
+      const params: any[] = [];
+      
+      if (userId !== undefined) {
+        query += ' WHERE user_id = $1';
+        params.push(userId);
+      }
+      
+      query += `
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT $${params.length + 1}
+      `;
+      
+      params.push(limit);
+      
+      const result = await this.executeQuery(query, params);
+      return result.rows.map(row => ({
+        date: row.date,
+        count: parseInt(row.count, 10)
+      }));
+    } catch (error) {
+      console.error(`Error getting recent days (limit: ${limit}):`, error);
+      return [];
     }
-    
-    query += `
-      GROUP BY date
-      ORDER BY date DESC
-      LIMIT $${params.length + 1}
-    `;
-    
-    params.push(limit);
-    
-    const result = await pool.query(query, params);
-    return result.rows.map(row => ({
-      date: row.date,
-      count: parseInt(row.count, 10)
-    }));
   }
 
   async getDatesWithNotes(userId?: number): Promise<string[]> {
-    let query = 'SELECT DISTINCT date FROM notes';
-    const params: any[] = [];
+    try {
+      let query = 'SELECT DISTINCT date FROM notes';
+      const params: any[] = [];
 
-    if (userId !== undefined) {
-      query += ' WHERE user_id = $1';
-      params.push(userId);
+      if (userId !== undefined) {
+        query += ' WHERE user_id = $1';
+        params.push(userId);
+      }
+      
+      const result = await this.executeQuery(query, params);
+      return result.rows.map(row => row.date);
+    } catch (error) {
+      console.error('Error getting dates with notes:', error);
+      return [];
     }
-    
-    const result = await pool.query(query, params);
-    return result.rows.map(row => row.date);
   }
 }
 
