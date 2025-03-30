@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PeriodType = "week" | "month";
 
@@ -19,7 +21,9 @@ interface PeriodAnalysisProps {
 
 export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   const [activeTab, setActiveTab] = useState<PeriodType>("week");
+  const [isOpen, setIsOpen] = useState(true);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Get the date ranges for week and month
   const weekStart = formatDateForAPI(startOfWeek(currentDate, { weekStartsOn: 1 }));
@@ -153,133 +157,148 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   const isLoading = (activeTab === 'week' && isWeeklyFetching) || (activeTab === 'month' && isMonthlyFetching);
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Period Analysis</CardTitle>
-      </CardHeader>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">Period Analysis</CardTitle>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {isOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </CardHeader>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
-        <div className="px-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="week">This Week</TabsTrigger>
-            <TabsTrigger value="month">This Month</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="week" className="pt-2">
-          <CardContent>
-            <div className="flex items-center justify-between mb-3">
-              <Badge variant="outline" className="text-xs">
-                {weekRangeDisplay}
-              </Badge>
-              {!weeklyAnalysis && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => analyzePeriod('week')}
-                  disabled={isWeeklyFetching}
-                >
-                  {isWeeklyFetching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    "Analyze Week"
-                  )}
-                </Button>
-              )}
+        <CollapsibleContent>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
+            <div className="px-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="week">This Week</TabsTrigger>
+                <TabsTrigger value="month">This Month</TabsTrigger>
+              </TabsList>
             </div>
-            
-            {isWeeklyFetching ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : weeklyAnalysis ? (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <div className="flex justify-between items-center mb-1">
-                  <p className="text-blue-800 font-medium">Weekly Analysis</p>
-                  {weeklyAnalysis && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
-                      onClick={() => regenerateAnalysis('week')}
-                      title="Regenerate analysis"
+
+            <TabsContent value="week" className="pt-2">
+              <CardContent>
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="text-xs">
+                    {weekRangeDisplay}
+                  </Badge>
+                  {!weeklyAnalysis && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => analyzePeriod('week')}
+                      disabled={isWeeklyFetching}
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      {isWeeklyFetching ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        "Analyze Week"
+                      )}
                     </Button>
                   )}
                 </div>
-                <div className="prose prose-sm max-w-none text-blue-700">
-                  <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">
-                No weekly analysis available. Click "Analyze Week" to generate.
-              </p>
-            )}
-          </CardContent>
-        </TabsContent>
+                
+                {isWeeklyFetching ? (
+                  <div className="flex items-center justify-center p-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : weeklyAnalysis ? (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-blue-800 font-medium">Weekly Analysis</p>
+                      {weeklyAnalysis && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                          onClick={() => regenerateAnalysis('week')}
+                          title="Regenerate analysis"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="prose prose-sm max-w-none text-blue-700">
+                      <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    No weekly analysis available. Click "Analyze Week" to generate.
+                  </p>
+                )}
+              </CardContent>
+            </TabsContent>
 
-        <TabsContent value="month" className="pt-2">
-          <CardContent>
-            <div className="flex items-center justify-between mb-3">
-              <Badge variant="outline" className="text-xs">
-                {monthRangeDisplay}
-              </Badge>
-              {!monthlyAnalysis && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => analyzePeriod('month')}
-                  disabled={isMonthlyFetching}
-                >
-                  {isMonthlyFetching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    "Analyze Month"
-                  )}
-                </Button>
-              )}
-            </div>
-            
-            {isMonthlyFetching ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : monthlyAnalysis ? (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <div className="flex justify-between items-center mb-1">
-                  <p className="text-blue-800 font-medium">Monthly Analysis</p>
-                  {monthlyAnalysis && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
-                      onClick={() => regenerateAnalysis('month')}
-                      title="Regenerate analysis"
+            <TabsContent value="month" className="pt-2">
+              <CardContent>
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="text-xs">
+                    {monthRangeDisplay}
+                  </Badge>
+                  {!monthlyAnalysis && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => analyzePeriod('month')}
+                      disabled={isMonthlyFetching}
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      {isMonthlyFetching ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        "Analyze Month"
+                      )}
                     </Button>
                   )}
                 </div>
-                <div className="prose prose-sm max-w-none text-blue-700">
-                  <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">
-                No monthly analysis available. Click "Analyze Month" to generate.
-              </p>
-            )}
-          </CardContent>
-        </TabsContent>
-      </Tabs>
-    </Card>
+                
+                {isMonthlyFetching ? (
+                  <div className="flex items-center justify-center p-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : monthlyAnalysis ? (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-blue-800 font-medium">Monthly Analysis</p>
+                      {monthlyAnalysis && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                          onClick={() => regenerateAnalysis('month')}
+                          title="Regenerate analysis"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="prose prose-sm max-w-none text-blue-700">
+                      <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    No monthly analysis available. Click "Analyze Month" to generate.
+                  </p>
+                )}
+              </CardContent>
+            </TabsContent>
+          </Tabs>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

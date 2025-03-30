@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 
 interface NotesListProps {
   notes: Note[];
@@ -89,7 +90,9 @@ export default function NotesList({
                 </Button>
               )}
             </div>
-            <p className="text-blue-700">{analysis}</p>
+            <div className="prose prose-sm max-w-none text-blue-700">
+              <ReactMarkdown>{analysis}</ReactMarkdown>
+            </div>
           </div>
         )}
         

@@ -232,7 +232,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <h1 className="text-xl font-bold text-gray-800 flex items-center">
-              <span className="mr-2">📝</span> Field Notes
+              <span className="mr-2">📝</span> <span className="hidden sm:inline">Field Notes</span>
             </h1>
             
             <div className="flex items-center space-x-4">
@@ -369,38 +369,42 @@ export default function Home() {
       {/* Mobile bottom navigation */}
       <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
         <div className="max-w-md mx-auto flex justify-between">
-          <button className="flex flex-col items-center py-3 px-2 text-blue-600">
-            <List className="h-5 w-5" />
-            <span className="text-xs mt-1">Notes</span>
+          <button className="flex items-center py-3 px-4 text-blue-600" title="Notes">
+            <List className="h-6 w-6" />
+            <span className="sr-only">Notes</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-2 text-gray-500"
+            className="flex items-center py-3 px-4 text-gray-500"
             onClick={toggleCalendar}
+            title="Calendar"
           >
-            <CalendarIcon className="h-5 w-5" />
-            <span className="text-xs mt-1">Calendar</span>
+            <CalendarIcon className="h-6 w-6" />
+            <span className="sr-only">Calendar</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-2 text-gray-500"
+            className="flex items-center py-3 px-4 text-gray-500"
             onClick={analyzeNotes}
             disabled={isAnalysisFetching || notes.length === 0}
+            title="Daily Analysis"
           >
-            <BrainCircuit className="h-5 w-5" />
-            <span className="text-xs mt-1">Daily</span>
+            <BrainCircuit className="h-6 w-6" />
+            <span className="sr-only">Daily</span>
           </button>
           <button 
-            className={`flex flex-col items-center py-3 px-2 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
+            className={`flex items-center py-3 px-4 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
             onClick={togglePeriodAnalysis}
+            title="Period Analysis"
           >
-            <CalendarRange className="h-5 w-5" />
-            <span className="text-xs mt-1">Period</span>
+            <CalendarRange className="h-6 w-6" />
+            <span className="sr-only">Period</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-2 text-gray-500"
+            className="flex items-center py-3 px-4 text-gray-500"
             onClick={() => setLocation('/profile')}
+            title="Profile"
           >
-            <UserIcon className="h-5 w-5" />
-            <span className="text-xs mt-1">Profile</span>
+            <UserIcon className="h-6 w-6" />
+            <span className="sr-only">Profile</span>
           </button>
         </div>
       </nav>
