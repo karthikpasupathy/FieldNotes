@@ -120,9 +120,10 @@ export default function Calendar({
               {/* Indicator dot for days with notes */}
               {dayHasNotes && isCurrentMonth && (
                 <div 
-                  className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+                  className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full ${
                     isSelected ? "bg-primary-foreground" : "bg-primary"
                   }`}
+                  style={{ pointerEvents: 'none' }}
                 />
               )}
             </div>
