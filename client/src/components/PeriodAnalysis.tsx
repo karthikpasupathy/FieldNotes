@@ -159,10 +159,10 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
       <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center px-1">
+        <CardHeader className="p-4 flex items-center">
+          <div className="flex justify-between items-center w-full px-1">
             <div className="w-8"></div> {/* Spacer to balance the right button */}
-            <CardTitle className="text-lg text-center flex-grow">Period Analysis</CardTitle>
+            <CardTitle className="text-lg text-center flex-grow my-0">Period Analysis</CardTitle>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 {isOpen ? (
