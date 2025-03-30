@@ -24,6 +24,8 @@ export interface IStorage {
   deleteNote(noteId: number, userId: number): Promise<boolean>;
   getRecentDays(limit: number, userId?: number): Promise<{ date: string; count: number }[]>;
   getDatesWithNotes(userId?: number): Promise<string[]>;
+  saveAnalysis(date: string, analysis: string, userId: number): Promise<void>;
+  getAnalysis(date: string, userId: number): Promise<string | null>;
   sessionStore: session.Store;
 }
 
@@ -128,7 +130,8 @@ export class MemStorage implements IStorage {
     const note: Note = { 
       ...insertNote, 
       id, 
-      timestamp: new Date() 
+      timestamp: new Date(),
+      analysis: null
     };
     this.notes.set(id, note);
     return note;
@@ -172,6 +175,25 @@ export class MemStorage implements IStorage {
         dates.add(note.date);
       });
     return Array.from(dates);
+  }
+  
+  async saveAnalysis(date: string, analysis: string, userId: number): Promise<void> {
+    // Find all notes for this date and user and update their analysis field
+    Array.from(this.notes.values())
+      .filter(note => note.date === date && note.userId === userId)
+      .forEach(note => {
+        // Update the note with analysis
+        note.analysis = analysis;
+        this.notes.set(note.id, note);
+      });
+  }
+  
+  async getAnalysis(date: string, userId: number): Promise<string | null> {
+    // Get the first note for this date and user that has an analysis
+    const noteWithAnalysis = Array.from(this.notes.values())
+      .find(note => note.date === date && note.userId === userId && note.analysis);
+    
+    return noteWithAnalysis?.analysis || null;
   }
 }
 
@@ -324,7 +346,7 @@ export class PostgresStorage implements IStorage {
       query += ' ORDER BY date DESC';
       
       const result = await this.executeQuery(query, params);
-      return result.rows.map(row => row.date);
+      return result.rows.map((row: any) => row.date);
     } catch (error) {
       console.error('Error getting all dates:', error);
       return [];
@@ -335,7 +357,7 @@ export class PostgresStorage implements IStorage {
     try {
       const { content, date, userId } = note;
       const result = await this.executeQuery(
-        'INSERT INTO notes (content, date, user_id, timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
+        'INSERT INTO notes (content, date, user_id, timestamp, analysis) VALUES ($1, $2, $3, NOW(), NULL) RETURNING *',
         [content, date, userId]
       );
       return result.rows[0];
@@ -382,7 +404,7 @@ export class PostgresStorage implements IStorage {
       params.push(limit);
       
       const result = await this.executeQuery(query, params);
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         date: row.date,
         count: parseInt(row.count, 10)
       }));
@@ -403,10 +425,41 @@ export class PostgresStorage implements IStorage {
       }
       
       const result = await this.executeQuery(query, params);
-      return result.rows.map(row => row.date);
+      return result.rows.map((row: any) => row.date);
     } catch (error) {
       console.error('Error getting dates with notes:', error);
       return [];
+    }
+  }
+  
+  async saveAnalysis(date: string, analysis: string, userId: number): Promise<void> {
+    try {
+      // Update the analysis field for all notes for this date and user
+      await this.executeQuery(
+        'UPDATE notes SET analysis = $1 WHERE date = $2 AND user_id = $3',
+        [analysis, date, userId]
+      );
+    } catch (error) {
+      console.error(`Error saving analysis for date ${date}:`, error);
+      throw new Error('Failed to save analysis. Please try again later.');
+    }
+  }
+  
+  async getAnalysis(date: string, userId: number): Promise<string | null> {
+    try {
+      const result = await this.executeQuery(
+        'SELECT analysis FROM notes WHERE date = $1 AND user_id = $2 AND analysis IS NOT NULL LIMIT 1',
+        [date, userId]
+      );
+      
+      if (result.rows.length > 0 && result.rows[0].analysis) {
+        return result.rows[0].analysis;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error getting analysis for date ${date}:`, error);
+      return null;
     }
   }
 }

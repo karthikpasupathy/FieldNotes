@@ -234,6 +234,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // First check if we already have an analysis for this date
+      const existingAnalysis = await storage.getAnalysis(date, userId);
+      
+      if (existingAnalysis) {
+        // Return the existing analysis if it exists
+        return res.json({ analysis: existingAnalysis });
+      }
+      
+      // Otherwise, get the notes and generate a new analysis
       const notes = await storage.getNotesByDate(date, userId);
       
       if (notes.length === 0) {
@@ -242,6 +256,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use OpenAI to analyze the notes
       const analysis = await analyzeNotes(notes);
+      
+      // Save the analysis to the database for future retrieval
+      await storage.saveAnalysis(date, analysis, userId);
       
       res.json({ analysis });
     } catch (error) {

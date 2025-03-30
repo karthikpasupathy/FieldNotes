@@ -18,6 +18,7 @@ export const notes = pgTable("notes", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   date: text("date").notNull(), // Format: YYYY-MM-DD for easy querying by date
   userId: integer("user_id").notNull(),
+  analysis: text("analysis"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
