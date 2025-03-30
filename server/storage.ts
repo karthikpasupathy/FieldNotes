@@ -208,14 +208,14 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    const result = await pool.query('SELECT * FROM users WHERE "resetToken" = $1 AND "resetTokenExpiry" > NOW()', [token]);
+    const result = await pool.query('SELECT * FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()', [token]);
     return result.rows[0] || undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
     const result = await pool.query(
-      'INSERT INTO users (username, password, email, name, "resetToken", "resetTokenExpiry") VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+      'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
       [username, password, email, name || null]
     );
     return result.rows[0];
@@ -223,14 +223,14 @@ export class PostgresStorage implements IStorage {
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
     await pool.query(
-      'UPDATE users SET "resetToken" = $1, "resetTokenExpiry" = $2 WHERE id = $3',
+      'UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3',
       [token, expiry, userId]
     );
   }
 
   async updateUserPassword(userId: number, password: string): Promise<void> {
     await pool.query(
-      'UPDATE users SET password = $1, "resetToken" = NULL, "resetTokenExpiry" = NULL WHERE id = $2',
+      'UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
       [password, userId]
     );
   }
@@ -240,7 +240,7 @@ export class PostgresStorage implements IStorage {
     const params: any[] = [date];
 
     if (userId !== undefined) {
-      query += ' AND "userId" = $2';
+      query += ' AND user_id = $2';
       params.push(userId);
     }
 
@@ -255,7 +255,7 @@ export class PostgresStorage implements IStorage {
     const params: any[] = [];
 
     if (userId !== undefined) {
-      query += ' WHERE "userId" = $1';
+      query += ' WHERE user_id = $1';
       params.push(userId);
     }
 
@@ -268,7 +268,7 @@ export class PostgresStorage implements IStorage {
   async createNote(note: InsertNote): Promise<Note> {
     const { content, date, userId } = note;
     const result = await pool.query(
-      'INSERT INTO notes (content, date, "userId", timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
+      'INSERT INTO notes (content, date, user_id, timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
       [content, date, userId]
     );
     return result.rows[0];
@@ -276,7 +276,7 @@ export class PostgresStorage implements IStorage {
 
   async deleteNote(noteId: number, userId: number): Promise<boolean> {
     const result = await pool.query(
-      'DELETE FROM notes WHERE id = $1 AND "userId" = $2 RETURNING id',
+      'DELETE FROM notes WHERE id = $1 AND user_id = $2 RETURNING id',
       [noteId, userId]
     );
     
@@ -292,7 +292,7 @@ export class PostgresStorage implements IStorage {
     const params: any[] = [];
     
     if (userId !== undefined) {
-      query += ' WHERE "userId" = $1';
+      query += ' WHERE user_id = $1';
       params.push(userId);
     }
     
@@ -316,7 +316,7 @@ export class PostgresStorage implements IStorage {
     const params: any[] = [];
 
     if (userId !== undefined) {
-      query += ' WHERE "userId" = $1';
+      query += ' WHERE user_id = $1';
       params.push(userId);
     }
     
