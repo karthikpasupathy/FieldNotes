@@ -1,12 +1,12 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import { analyzeNotes } from "./openai";
+import { analyzeNotes, analyzePeriodNotes } from "./openai";
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -290,6 +290,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting note:", error);
       res.status(500).json({ message: "Failed to delete note" });
+    }
+  });
+
+  // Endpoint to analyze notes for a period (week or month)
+  app.post("/api/analyze-period", isAuthenticated, async (req, res) => {
+    try {
+      // Validate request body
+      const validation = periodAnalysisRequestSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        const errorMessage = fromZodError(validation.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      const { startDate, endDate, periodType } = validation.data;
+      const userId = req.user!.id;
+      const forceRegenerate = req.query.regenerate === 'true';
+      
+      // Check if we already have an analysis for this period (unless regeneration is forced)
+      if (!forceRegenerate) {
+        const existingAnalysis = await storage.getPeriodAnalysis(startDate, endDate, periodType, userId);
+        
+        if (existingAnalysis) {
+          // Return the existing analysis if it exists
+          return res.json({ analysis: existingAnalysis.analysis });
+        }
+      }
+      
+      // Get notes within the date range
+      const notes = await storage.getNotesByDateRange(startDate, endDate, userId);
+      
+      if (notes.length === 0) {
+        return res.status(404).json({ message: `No notes found for this ${periodType}` });
+      }
+      
+      // Use OpenAI to analyze the notes
+      const analysis = await analyzePeriodNotes(notes, startDate, endDate, periodType);
+      
+      // Save the analysis for future use
+      const savedAnalysis = await storage.savePeriodAnalysis({
+        userId,
+        startDate,
+        endDate,
+        periodType,
+        analysis
+      });
+      
+      res.json({ analysis: savedAnalysis.analysis });
+    } catch (error) {
+      console.error(`Error analyzing period notes:`, error);
+      res.status(500).json({ message: `Failed to analyze ${req.body?.periodType || 'period'} notes` });
+    }
+  });
+  
+  // Endpoint to retrieve a saved period analysis
+  app.get("/api/period-analysis", isAuthenticated, async (req, res) => {
+    try {
+      const { startDate, endDate, periodType } = req.query;
+      
+      // Validate query parameters
+      if (!startDate || !endDate || !periodType) {
+        return res.status(400).json({ message: "Missing required parameters: startDate, endDate, and periodType" });
+      }
+      
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate as string) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate as string)) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      if (periodType !== 'week' && periodType !== 'month') {
+        return res.status(400).json({ message: "periodType must be 'week' or 'month'" });
+      }
+      
+      const userId = req.user!.id;
+      
+      // Get the saved analysis
+      const analysis = await storage.getPeriodAnalysis(
+        startDate as string, 
+        endDate as string, 
+        periodType as string, 
+        userId
+      );
+      
+      if (!analysis) {
+        return res.status(404).json({ message: `No ${periodType} analysis found for the specified date range` });
+      }
+      
+      res.json({ analysis: analysis.analysis });
+    } catch (error) {
+      console.error("Error fetching period analysis:", error);
+      res.status(500).json({ message: "Failed to fetch period analysis" });
     }
   });
 

@@ -10,7 +10,8 @@ import {
   Settings, 
   Download, 
   User as UserIcon,
-  BrainCircuit
+  BrainCircuit,
+  CalendarRange
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +19,7 @@ import NotesList from "@/components/NotesList";
 import Calendar from "@/components/Calendar";
 import RecentDays from "@/components/RecentDays";
 import UserProfile from "@/components/UserProfile";
+import PeriodAnalysis from "@/components/PeriodAnalysis";
 import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Note } from "@shared/schema";
@@ -27,9 +29,27 @@ import { useAuth } from "@/hooks/use-auth";
 export default function Home() {
   const [, setLocation] = useLocation();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isPeriodAnalysisOpen, setIsPeriodAnalysisOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const [match, params] = useRoute("/day/:date");
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Effect to track window size for responsive design
+  useEffect(() => {
+    const checkIfDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    
+    // Check on initial load
+    checkIfDesktop();
+    
+    // Set up event listener for window resize
+    window.addEventListener('resize', checkIfDesktop);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkIfDesktop);
+  }, []);
   
   // Get current date from URL or use today's date
   const today = formatDateForAPI(new Date());
@@ -102,6 +122,13 @@ export default function Home() {
   // Handle calendar toggle
   const toggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
+    if (isPeriodAnalysisOpen) setIsPeriodAnalysisOpen(false);
+  };
+  
+  // Handle period analysis toggle
+  const togglePeriodAnalysis = () => {
+    setIsPeriodAnalysisOpen(!isPeriodAnalysisOpen);
+    if (isCalendarOpen) setIsCalendarOpen(false);
   };
 
   // Handle date navigation
@@ -317,6 +344,14 @@ export default function Home() {
                 </div>
               )}
               
+              {/* Period Analysis Section (shown conditionally on mobile, always on desktop) */}
+              {(isPeriodAnalysisOpen || isDesktop) && (
+                <div className={isPeriodAnalysisOpen ? "md:hidden mb-4" : "hidden md:block mb-4"}>
+                  <PeriodAnalysis currentDate={currentDateObj} />
+                </div>
+              )}
+              
+              {/* Daily Notes List with Analysis */}
               <NotesList 
                 notes={notes} 
                 date={currentDate} 
@@ -333,39 +368,39 @@ export default function Home() {
       
       {/* Mobile bottom navigation */}
       <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
-        <div className="max-w-md mx-auto px-4 flex justify-between">
-          <button className="flex flex-col items-center py-3 px-4 text-blue-600">
+        <div className="max-w-md mx-auto flex justify-between">
+          <button className="flex flex-col items-center py-3 px-2 text-blue-600">
             <List className="h-5 w-5" />
             <span className="text-xs mt-1">Notes</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            className="flex flex-col items-center py-3 px-2 text-gray-500"
             onClick={toggleCalendar}
           >
             <CalendarIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Calendar</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            className="flex flex-col items-center py-3 px-2 text-gray-500"
             onClick={analyzeNotes}
             disabled={isAnalysisFetching || notes.length === 0}
           >
             <BrainCircuit className="h-5 w-5" />
-            <span className="text-xs mt-1">Analyze</span>
+            <span className="text-xs mt-1">Daily</span>
           </button>
           <button 
-            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            className={`flex flex-col items-center py-3 px-2 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
+            onClick={togglePeriodAnalysis}
+          >
+            <CalendarRange className="h-5 w-5" />
+            <span className="text-xs mt-1">Period</span>
+          </button>
+          <button 
+            className="flex flex-col items-center py-3 px-2 text-gray-500"
             onClick={() => setLocation('/profile')}
           >
             <UserIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Profile</span>
-          </button>
-          <button 
-            className="flex flex-col items-center py-3 px-4 text-gray-500"
-            onClick={exportNotesAsMarkdown}
-          >
-            <Download className="h-5 w-5" />
-            <span className="text-xs mt-1">Export</span>
           </button>
         </div>
       </nav>

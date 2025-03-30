@@ -1,4 +1,14 @@
-import { notes, type Note, type InsertNote, users, type User, type InsertUser } from "@shared/schema";
+import { 
+  notes, 
+  type Note, 
+  type InsertNote, 
+  users, 
+  type User, 
+  type InsertUser,
+  periodAnalyses,
+  type PeriodAnalysis,
+  type InsertPeriodAnalysis
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { Pool } from "pg";
@@ -19,6 +29,7 @@ export interface IStorage {
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
+  getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]>;
   getAllDates(userId?: number): Promise<string[]>;
   createNote(note: InsertNote): Promise<Note>;
   deleteNote(noteId: number, userId: number): Promise<boolean>;
@@ -26,21 +37,27 @@ export interface IStorage {
   getDatesWithNotes(userId?: number): Promise<string[]>;
   saveAnalysis(date: string, analysis: string, userId: number): Promise<void>;
   getAnalysis(date: string, userId: number): Promise<string | null>;
+  savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
+  getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
   sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private notes: Map<number, Note>;
+  private periodAnalyses: Map<number, PeriodAnalysis>;
   private userCurrentId: number;
   private noteCurrentId: number;
+  private periodAnalysisCurrentId: number;
   sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
     this.notes = new Map();
+    this.periodAnalyses = new Map();
     this.userCurrentId = 1;
     this.noteCurrentId = 1;
+    this.periodAnalysisCurrentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     });
@@ -50,9 +67,11 @@ export class MemStorage implements IStorage {
   reset() {
     this.users.clear();
     this.notes.clear();
+    this.periodAnalyses.clear();
     this.userCurrentId = 1;
     this.noteCurrentId = 1;
-    console.log("Storage reset: All users and notes have been removed");
+    this.periodAnalysisCurrentId = 1;
+    console.log("Storage reset: All users, notes, and analyses have been removed");
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -194,6 +213,40 @@ export class MemStorage implements IStorage {
       .find(note => note.date === date && note.userId === userId && note.analysis);
     
     return noteWithAnalysis?.analysis || null;
+  }
+  
+  async getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]> {
+    return Array.from(this.notes.values())
+      .filter(note => {
+        // Check if note date is within range and belongs to the user
+        return note.date >= startDate && 
+               note.date <= endDate && 
+               note.userId === userId;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  
+  async savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis> {
+    const id = this.periodAnalysisCurrentId++;
+    const analysis: PeriodAnalysis = {
+      ...periodAnalysis,
+      id,
+      createdAt: new Date()
+    };
+    this.periodAnalyses.set(id, analysis);
+    return analysis;
+  }
+  
+  async getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null> {
+    const analysis = Array.from(this.periodAnalyses.values())
+      .find(analysis => 
+        analysis.startDate === startDate && 
+        analysis.endDate === endDate && 
+        analysis.periodType === periodType &&
+        analysis.userId === userId
+      );
+    
+    return analysis || null;
   }
 }
 
@@ -459,6 +512,88 @@ export class PostgresStorage implements IStorage {
       return null;
     } catch (error) {
       console.error(`Error getting analysis for date ${date}:`, error);
+      return null;
+    }
+  }
+  
+  async getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]> {
+    try {
+      const query = `
+        SELECT * FROM notes 
+        WHERE user_id = $1 
+        AND date >= $2 
+        AND date <= $3 
+        ORDER BY date ASC, timestamp DESC
+      `;
+      
+      const result = await this.executeQuery(query, [userId, startDate, endDate]);
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting notes for date range ${startDate} to ${endDate}:`, error);
+      return [];
+    }
+  }
+  
+  async savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis> {
+    try {
+      const { userId, startDate, endDate, periodType, analysis } = periodAnalysis;
+      
+      // Check if an analysis for this period already exists
+      const existingResult = await this.executeQuery(
+        `SELECT * FROM period_analyses 
+         WHERE user_id = $1 
+         AND start_date = $2 
+         AND end_date = $3 
+         AND period_type = $4`,
+        [userId, startDate, endDate, periodType]
+      );
+      
+      // If an analysis exists, update it
+      if (existingResult.rows.length > 0) {
+        const result = await this.executeQuery(
+          `UPDATE period_analyses 
+           SET analysis = $1, created_at = NOW() 
+           WHERE id = $2 
+           RETURNING *`,
+          [analysis, existingResult.rows[0].id]
+        );
+        return result.rows[0];
+      }
+      
+      // Otherwise, create a new analysis
+      const result = await this.executeQuery(
+        `INSERT INTO period_analyses 
+         (user_id, start_date, end_date, period_type, analysis, created_at) 
+         VALUES ($1, $2, $3, $4, $5, NOW()) 
+         RETURNING *`,
+        [userId, startDate, endDate, periodType, analysis]
+      );
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Error saving period analysis:`, error);
+      throw new Error('Failed to save period analysis. Please try again later.');
+    }
+  }
+  
+  async getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null> {
+    try {
+      const result = await this.executeQuery(
+        `SELECT * FROM period_analyses 
+         WHERE user_id = $1 
+         AND start_date = $2 
+         AND end_date = $3 
+         AND period_type = $4`,
+        [userId, startDate, endDate, periodType]
+      );
+      
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error getting period analysis:`, error);
       return null;
     }
   }
