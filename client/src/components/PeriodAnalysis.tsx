@@ -211,8 +211,24 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
             ) : weeklyAnalysis ? (
-              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-blue-800 font-medium">Weekly Analysis</p>
+                  {weeklyAnalysis && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                      onClick={() => regenerateAnalysis('week')}
+                      title="Regenerate analysis"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <div className="prose prose-sm max-w-none text-blue-700">
+                  <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">
@@ -252,8 +268,24 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
             ) : monthlyAnalysis ? (
-              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-blue-800 font-medium">Monthly Analysis</p>
+                  {monthlyAnalysis && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                      onClick={() => regenerateAnalysis('month')}
+                      title="Regenerate analysis"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <div className="prose prose-sm max-w-none text-blue-700">
+                  <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">
