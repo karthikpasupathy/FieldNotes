@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 type PeriodType = "week" | "month";
 
@@ -210,8 +211,8 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
             ) : weeklyAnalysis ? (
-              <div className="prose max-w-none">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{weeklyAnalysis.analysis}</p>
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+                <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">
@@ -251,8 +252,8 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
             ) : monthlyAnalysis ? (
-              <div className="prose max-w-none">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{monthlyAnalysis.analysis}</p>
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+                <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">
