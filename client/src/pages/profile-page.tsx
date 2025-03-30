@@ -93,29 +93,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Admin Dashboard Card - Only visible to admins */}
-          {user.isAdmin && (
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart2 className="h-5 w-5 mr-2 text-primary" />
-                  Admin Dashboard
-                </CardTitle>
-                <CardDescription>
-                  Access administrator tools and analytics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  View application statistics, user activity, and other administrative information.
-                </p>
-                <Button className="w-full" onClick={() => navigate("/admin")}>
-                  <BarChart2 className="mr-2 h-4 w-4" />
-                  Go to Admin Dashboard
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+
         </div>
       </div>
     </div>
