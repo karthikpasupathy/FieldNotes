@@ -1,8 +1,21 @@
 import { notes, type Note, type InsertNote, users, type User, type InsertUser } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import pkg from "pg";
+const { Pool } = pkg;
+import connectPg from "connect-pg-simple";
+import { neon, neonConfig } from '@neondatabase/serverless';
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
+
+// Configure Neon serverless driver (required for edge environments)
+neonConfig.fetchConnectionCache = true;
+
+// Create PostgreSQL connection pool
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -169,4 +182,148 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class PostgresStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    return result.rows[0] || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    return result.rows[0] || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    return result.rows[0] || undefined;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const result = await pool.query('SELECT * FROM users WHERE "resetToken" = $1 AND "resetTokenExpiry" > NOW()', [token]);
+    return result.rows[0] || undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const { username, password, email, name } = user;
+    const result = await pool.query(
+      'INSERT INTO users (username, password, email, name, "resetToken", "resetTokenExpiry") VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+      [username, password, email, name || null]
+    );
+    return result.rows[0];
+  }
+
+  async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
+    await pool.query(
+      'UPDATE users SET "resetToken" = $1, "resetTokenExpiry" = $2 WHERE id = $3',
+      [token, expiry, userId]
+    );
+  }
+
+  async updateUserPassword(userId: number, password: string): Promise<void> {
+    await pool.query(
+      'UPDATE users SET password = $1, "resetToken" = NULL, "resetTokenExpiry" = NULL WHERE id = $2',
+      [password, userId]
+    );
+  }
+
+  async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
+    let query = 'SELECT * FROM notes WHERE date = $1';
+    const params: any[] = [date];
+
+    if (userId !== undefined) {
+      query += ' AND "userId" = $2';
+      params.push(userId);
+    }
+
+    query += ' ORDER BY timestamp DESC';
+    
+    const result = await pool.query(query, params);
+    return result.rows;
+  }
+
+  async getAllDates(userId?: number): Promise<string[]> {
+    let query = 'SELECT DISTINCT date FROM notes';
+    const params: any[] = [];
+
+    if (userId !== undefined) {
+      query += ' WHERE "userId" = $1';
+      params.push(userId);
+    }
+
+    query += ' ORDER BY date DESC';
+    
+    const result = await pool.query(query, params);
+    return result.rows.map(row => row.date);
+  }
+
+  async createNote(note: InsertNote): Promise<Note> {
+    const { content, date, userId } = note;
+    const result = await pool.query(
+      'INSERT INTO notes (content, date, "userId", timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *',
+      [content, date, userId]
+    );
+    return result.rows[0];
+  }
+
+  async deleteNote(noteId: number, userId: number): Promise<boolean> {
+    const result = await pool.query(
+      'DELETE FROM notes WHERE id = $1 AND "userId" = $2 RETURNING id',
+      [noteId, userId]
+    );
+    
+    return (result.rowCount as number) > 0;
+  }
+
+  async getRecentDays(limit: number, userId?: number): Promise<{ date: string; count: number }[]> {
+    let query = `
+      SELECT date, COUNT(*) as count
+      FROM notes
+    `;
+    
+    const params: any[] = [];
+    
+    if (userId !== undefined) {
+      query += ' WHERE "userId" = $1';
+      params.push(userId);
+    }
+    
+    query += `
+      GROUP BY date
+      ORDER BY date DESC
+      LIMIT $${params.length + 1}
+    `;
+    
+    params.push(limit);
+    
+    const result = await pool.query(query, params);
+    return result.rows.map(row => ({
+      date: row.date,
+      count: parseInt(row.count, 10)
+    }));
+  }
+
+  async getDatesWithNotes(userId?: number): Promise<string[]> {
+    let query = 'SELECT DISTINCT date FROM notes';
+    const params: any[] = [];
+
+    if (userId !== undefined) {
+      query += ' WHERE "userId" = $1';
+      params.push(userId);
+    }
+    
+    const result = await pool.query(query, params);
+    return result.rows.map(row => row.date);
+  }
+}
+
+// Use PostgreSQL storage in production
+export const storage = new PostgresStorage();
