@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import { analyzeNotes } from "./openai";
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -217,6 +218,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting notes:", error);
       res.status(500).json({ message: "Failed to export notes" });
+    }
+  });
+
+  // Endpoint to analyze notes for a specific day
+  app.get("/api/analyze/:date", isAuthenticated, async (req, res) => {
+    try {
+      const { date } = req.params;
+      
+      // Validate date format
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const userId = req.user?.id;
+      const notes = await storage.getNotesByDate(date, userId);
+      
+      if (notes.length === 0) {
+        return res.status(404).json({ message: "No notes found for this date" });
+      }
+      
+      // Use OpenAI to analyze the notes
+      const analysis = await analyzeNotes(notes);
+      
+      res.json({ analysis });
+    } catch (error) {
+      console.error("Error analyzing notes:", error);
+      res.status(500).json({ message: "Failed to analyze notes" });
     }
   });
 

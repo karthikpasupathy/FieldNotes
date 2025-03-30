@@ -8,9 +8,18 @@ interface NotesListProps {
   date: string;
   isLoading: boolean;
   displayDate: string;
+  analysis?: string;
+  isAnalysisLoading?: boolean;
 }
 
-export default function NotesList({ notes, date, isLoading, displayDate }: NotesListProps) {
+export default function NotesList({ 
+  notes, 
+  date, 
+  isLoading, 
+  displayDate,
+  analysis,
+  isAnalysisLoading = false
+}: NotesListProps) {
   // Format the note timestamp for display
   const formatNoteTime = (timestamp: Date | string) => {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
@@ -20,7 +29,23 @@ export default function NotesList({ notes, date, isLoading, displayDate }: Notes
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">{displayDate}</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">{displayDate}</h2>
+        
+        {/* AI Analysis */}
+        {isAnalysisLoading && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        )}
+        
+        {analysis && !isAnalysisLoading && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
+            <p className="text-blue-800 font-medium mb-1">Daily Analysis</p>
+            <p className="text-blue-700">{analysis}</p>
+          </div>
+        )}
         
         {/* New Note Form */}
         <NoteInput date={date} />

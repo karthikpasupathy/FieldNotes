@@ -9,7 +9,8 @@ import {
   List, 
   Settings, 
   Download, 
-  User as UserIcon
+  User as UserIcon,
+  BrainCircuit
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -52,6 +53,17 @@ export default function Home() {
   // Fetch dates with notes for calendar indicators
   const { data: datesWithNotes = [] } = useQuery<string[]>({
     queryKey: ['/api/dates-with-notes'],
+  });
+  
+  // Query for AI analysis of notes
+  const { 
+    data: analysisData, 
+    isLoading: isAnalysisLoading, 
+    refetch: refetchAnalysis,
+    isFetching: isAnalysisFetching 
+  } = useQuery<{ analysis: string }>({
+    queryKey: [`/api/analyze/${currentDate}`],
+    enabled: false, // Don't run this query automatically
   });
 
   // Handle calendar toggle
@@ -112,6 +124,39 @@ export default function Home() {
       description: `Notes for ${displayDate} have been exported as markdown.`,
     });
   };
+  
+  // Handle analyzing notes with AI
+  const analyzeNotes = async () => {
+    if (notes.length === 0) {
+      toast({
+        title: "No notes to analyze",
+        description: "There are no notes available for this date to analyze.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      toast({
+        title: "Analyzing notes",
+        description: "Using AI to analyze your notes for the day...",
+      });
+      
+      await refetchAnalysis();
+      
+      toast({
+        title: "Analysis complete",
+        description: "Your notes have been analyzed!",
+      });
+    } catch (error) {
+      console.error("Error analyzing notes:", error);
+      toast({
+        title: "Analysis failed",
+        description: "There was an error analyzing your notes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // If URL has no date parameter, redirect to today's date
   useEffect(() => {
@@ -161,6 +206,21 @@ export default function Home() {
                   <ArrowRightIcon className="h-5 w-5" />
                 </Button>
               </div>
+              
+              {/* Analyze Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={analyzeNotes}
+                title="Analyze My Day"
+                className="hidden sm:flex"
+                disabled={isAnalysisFetching || notes.length === 0}
+              >
+                <BrainCircuit className="h-4 w-4 mr-1" />
+                <span className="sr-only sm:not-sr-only">
+                  {isAnalysisFetching ? "Analyzing..." : "Analyze"}
+                </span>
+              </Button>
               
               {/* Export Button */}
               <Button
@@ -228,7 +288,9 @@ export default function Home() {
                 notes={notes} 
                 date={currentDate} 
                 isLoading={isLoading} 
-                displayDate={formatDateForDisplay(currentDateObj)} 
+                displayDate={formatDateForDisplay(currentDateObj)}
+                analysis={analysisData?.analysis}
+                isAnalysisLoading={isAnalysisFetching}
               />
             </div>
           </div>
@@ -248,6 +310,14 @@ export default function Home() {
           >
             <CalendarIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Calendar</span>
+          </button>
+          <button 
+            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            onClick={analyzeNotes}
+            disabled={isAnalysisFetching || notes.length === 0}
+          >
+            <BrainCircuit className="h-5 w-5" />
+            <span className="text-xs mt-1">Analyze</span>
           </button>
           <button 
             className="flex flex-col items-center py-3 px-4 text-gray-500"
