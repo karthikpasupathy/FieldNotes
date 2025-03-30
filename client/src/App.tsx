@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
+import AdminDashboard from "@/pages/admin-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 
@@ -17,6 +18,7 @@ function Router() {
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/day/:date" component={Home} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/admin" component={AdminDashboard} />
       
       {/* Public Routes */}
       <Route path="/auth" component={AuthPage} />

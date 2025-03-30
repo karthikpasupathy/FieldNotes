@@ -7,6 +7,7 @@ import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
+import { pool } from "./db"; // Import the database pool for direct SQL execution
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -380,6 +381,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching period analysis:", error);
       res.status(500).json({ message: "Failed to fetch period analysis" });
+    }
+  });
+
+  // Admin dashboard routes
+  
+  // Middleware to check if user is an admin
+  function isAdmin(req: Request, res: Response, next: NextFunction) {
+    if (req.isAuthenticated() && req.user?.isAdmin) {
+      return next();
+    }
+    res.status(403).json({ message: "Access denied: Admin privileges required" });
+  }
+  
+  // Get total users count
+  app.get("/api/admin/users/count", isAdmin, async (req, res) => {
+    try {
+      const count = await storage.getTotalUsers();
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting total users count:", error);
+      res.status(500).json({ message: "Failed to get total users count" });
+    }
+  });
+  
+  // Get active users in the last X days
+  app.get("/api/admin/users/active", isAdmin, async (req, res) => {
+    try {
+      const days = Number(req.query.days) || 30;
+      const count = await storage.getActiveUsers(days);
+      res.json({ count, days });
+    } catch (error) {
+      console.error("Error getting active users count:", error);
+      res.status(500).json({ message: "Failed to get active users count" });
+    }
+  });
+  
+  // Get total notes count
+  app.get("/api/admin/notes/count", isAdmin, async (req, res) => {
+    try {
+      const count = await storage.getTotalNotes();
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting total notes count:", error);
+      res.status(500).json({ message: "Failed to get total notes count" });
+    }
+  });
+  
+  // Get analyses counts
+  app.get("/api/admin/analyses/count", isAdmin, async (req, res) => {
+    try {
+      const counts = await storage.getTotalAnalyses();
+      res.json(counts);
+    } catch (error) {
+      console.error("Error getting analyses counts:", error);
+      res.status(500).json({ message: "Failed to get analyses counts" });
+    }
+  });
+  
+  // Get signups by date
+  app.get("/api/admin/signups", isAdmin, async (req, res) => {
+    try {
+      const days = Number(req.query.days) || 30;
+      const signups = await storage.getSignupsByDate(days);
+      res.json(signups);
+    } catch (error) {
+      console.error("Error getting signups by date:", error);
+      res.status(500).json({ message: "Failed to get signups by date" });
+    }
+  });
+  
+  // Get user activity
+  app.get("/api/admin/user-activity", isAdmin, async (req, res) => {
+    try {
+      const days = Number(req.query.days) || 30;
+      const activity = await storage.getUserActivity(days);
+      res.json(activity);
+    } catch (error) {
+      console.error("Error getting user activity:", error);
+      res.status(500).json({ message: "Failed to get user activity" });
+    }
+  });
+  
+  // Set a user as admin (for initial setup)
+  app.post("/api/admin/promote", isAuthenticated, async (req, res) => {
+    try {
+      // This is a simplified route that allows the first user to promote themselves
+      // In a real app, you'd need a more robust admin authentication system
+      const userId = req.user!.id;
+      
+      // Get total users count
+      const totalUsers = await storage.getTotalUsers();
+      
+      // Only allow this if there's 1 user or the current user is already an admin
+      if (totalUsers === 1 || req.user!.isAdmin) {
+        // Use pool directly since we didn't create a method for this
+        await pool.query('UPDATE users SET is_admin = TRUE WHERE id = $1', [userId]);
+        res.json({ message: "User promoted to admin" });
+      } else {
+        res.status(403).json({ message: "Only the first user can promote themselves to admin" });
+      }
+    } catch (error) {
+      console.error("Error promoting user to admin:", error);
+      res.status(500).json({ message: "Failed to promote user to admin" });
     }
   });
 

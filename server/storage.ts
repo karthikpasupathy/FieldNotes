@@ -84,9 +84,11 @@ export class MemStorage implements IStorage {
     this.users.clear();
     this.notes.clear();
     this.periodAnalyses.clear();
+    this.userLogins.clear();
     this.userCurrentId = 1;
     this.noteCurrentId = 1;
     this.periodAnalysisCurrentId = 1;
+    this.userLoginCurrentId = 1;
     console.log("Storage reset: All users, notes, and analyses have been removed");
   }
 
@@ -266,6 +268,121 @@ export class MemStorage implements IStorage {
     
     return analysis || null;
   }
+
+  async recordUserLogin(userId: number): Promise<void> {
+    // Get or create user login array for this user
+    let userLogins = this.userLogins.get(userId) || [];
+    
+    // Add new login
+    userLogins.push({
+      id: this.userLoginCurrentId++,
+      userId,
+      timestamp: new Date()
+    });
+    
+    // Update the map
+    this.userLogins.set(userId, userLogins);
+  }
+
+  // Admin Analytics Methods
+  async getTotalUsers(): Promise<number> {
+    return this.users.size;
+  }
+
+  async getActiveUsers(days: number): Promise<number> {
+    const activeUserIds = new Set<number>();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    // Check user logins within the period
+    Array.from(this.userLogins.keys()).forEach(userId => {
+      const logins = this.userLogins.get(userId) || [];
+      for (const login of logins) {
+        if (login.timestamp >= cutoffDate) {
+          activeUserIds.add(userId);
+          break;
+        }
+      }
+    });
+    
+    return activeUserIds.size;
+  }
+
+  async getTotalNotes(): Promise<number> {
+    return this.notes.size;
+  }
+
+  async getTotalAnalyses(): Promise<{dailyCount: number, weeklyCount: number, monthlyCount: number}> {
+    // Count daily analyses (notes with non-null analysis field)
+    const dailyCount = Array.from(this.notes.values())
+      .filter(note => note.analysis !== null).length;
+    
+    // Count weekly analyses
+    const weeklyCount = Array.from(this.periodAnalyses.values())
+      .filter(analysis => analysis.periodType === 'week').length;
+    
+    // Count monthly analyses
+    const monthlyCount = Array.from(this.periodAnalyses.values())
+      .filter(analysis => analysis.periodType === 'month').length;
+    
+    return { dailyCount, weeklyCount, monthlyCount };
+  }
+
+  async getSignupsByDate(days: number): Promise<{date: string, count: number}[]> {
+    const dateMap = new Map<string, number>();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    // Filter users created within the period
+    Array.from(this.users.values())
+      .filter(user => user.createdAt >= cutoffDate)
+      .forEach(user => {
+        const dateStr = user.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+        const count = dateMap.get(dateStr) || 0;
+        dateMap.set(dateStr, count + 1);
+      });
+    
+    // Convert to array and sort
+    return Array.from(dateMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async getUserActivity(days: number): Promise<{username: string, noteCount: number, lastActive: Date}[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const userActivity = Array.from(this.users.values()).map(user => {
+      // Count recent notes for this user
+      const noteCount = Array.from(this.notes.values())
+        .filter(note => note.userId === user.id && note.timestamp >= cutoffDate)
+        .length;
+      
+      // Find latest login for this user
+      const userLogins = this.userLogins.get(user.id) || [];
+      let lastActive = null;
+      
+      for (const login of userLogins) {
+        if (!lastActive || login.timestamp > lastActive) {
+          lastActive = login.timestamp;
+        }
+      }
+      
+      return {
+        username: user.username,
+        noteCount,
+        lastActive: lastActive || user.createdAt
+      };
+    });
+    
+    // Sort by last active timestamp, most recent first
+    return userActivity.sort((a, b) => {
+      if (a.lastActive && b.lastActive) {
+        return b.lastActive.getTime() - a.lastActive.getTime();
+      }
+      return a.lastActive ? -1 : 1;
+    }).slice(0, 50); // Limit to 50 users like the PostgreSQL implementation
+  }
 }
 
 export class PostgresStorage implements IStorage {
@@ -350,7 +467,7 @@ export class PostgresStorage implements IStorage {
     const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, is_admin, created_at) VALUES ($1, $2, $3, $4, NULL, NULL, FALSE, NOW()) RETURNING *',
         [username, password, email, name || null]
       );
       return result.rows[0];

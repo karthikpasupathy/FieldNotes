@@ -147,10 +147,18 @@ export function setupAuth(app: Express) {
       
       console.log('User authenticated successfully, saving session');
       
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) {
           console.error('Session save error:', err);
           return next(err);
+        }
+        
+        // Record user login for analytics
+        try {
+          await storage.recordUserLogin(user.id);
+        } catch (error) {
+          console.error('Failed to record login:', error);
+          // Continue even if recording fails
         }
         
         // Return user without password
