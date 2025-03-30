@@ -1,21 +1,14 @@
 import { notes, type Note, type InsertNote, users, type User, type InsertUser } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import pkg from "pg";
-const { Pool } = pkg;
+import { Pool } from "pg";
 import connectPg from "connect-pg-simple";
-import { neon, neonConfig } from '@neondatabase/serverless';
+import { pool } from "./db"; // Import pool from db.ts to ensure we use the same pool instance
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
 
-// Configure Neon serverless driver (required for edge environments)
-neonConfig.fetchConnectionCache = true;
-
-// Create PostgreSQL connection pool
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+// No need to recreate pool here, imported from db.ts
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
