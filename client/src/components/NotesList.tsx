@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { type Note } from "@shared/schema";
 import NoteInput from "./NoteInput";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2 } from "lucide-react";
+import { Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -15,6 +15,7 @@ interface NotesListProps {
   displayDate: string;
   analysis?: string;
   isAnalysisLoading?: boolean;
+  onRegenerateAnalysis?: () => void;
 }
 
 export default function NotesList({ 
@@ -23,7 +24,8 @@ export default function NotesList({
   isLoading, 
   displayDate,
   analysis,
-  isAnalysisLoading = false
+  isAnalysisLoading = false,
+  onRegenerateAnalysis
 }: NotesListProps) {
   const { toast } = useToast();
   
@@ -73,7 +75,20 @@ export default function NotesList({
         
         {analysis && !isAnalysisLoading && (
           <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
-            <p className="text-blue-800 font-medium mb-1">Daily Analysis</p>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-blue-800 font-medium">Daily Analysis</p>
+              {onRegenerateAnalysis && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                  onClick={onRegenerateAnalysis}
+                  title="Regenerate analysis"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
             <p className="text-blue-700">{analysis}</p>
           </div>
         )}

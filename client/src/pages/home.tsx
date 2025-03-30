@@ -65,6 +65,39 @@ export default function Home() {
     queryKey: [`/api/analyze/${currentDate}`],
     enabled: false, // Don't run this query automatically
   });
+  
+  // Function to force regenerate analysis
+  const regenerateAnalysis = async () => {
+    try {
+      toast({
+        title: "Regenerating analysis",
+        description: "Using AI to reanalyze your notes for the day..."
+      });
+      
+      // Make a direct fetch with regenerate=true parameter
+      const response = await fetch(`/api/analyze/${currentDate}?regenerate=true`);
+      if (!response.ok) {
+        throw new Error('Failed to regenerate analysis');
+      }
+      
+      const data = await response.json();
+      
+      // Update the query cache with the new analysis
+      queryClient.setQueryData([`/api/analyze/${currentDate}`], data);
+      
+      toast({
+        title: "Analysis regenerated",
+        description: "Your notes have been reanalyzed with the latest entries!"
+      });
+    } catch (error) {
+      console.error("Error regenerating analysis:", error);
+      toast({
+        title: "Regeneration failed",
+        description: "There was an error regenerating your analysis. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Handle calendar toggle
   const toggleCalendar = () => {
@@ -291,6 +324,7 @@ export default function Home() {
                 displayDate={formatDateForDisplay(currentDateObj)}
                 analysis={analysisData?.analysis}
                 isAnalysisLoading={isAnalysisFetching}
+                onRegenerateAnalysis={regenerateAnalysis}
               />
             </div>
           </div>

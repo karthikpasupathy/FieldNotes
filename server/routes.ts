@@ -227,6 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analyze/:date", isAuthenticated, async (req, res) => {
     try {
       const { date } = req.params;
+      const forceRegenerate = req.query.regenerate === 'true';
       
       // Validate date format
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -239,15 +240,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      // First check if we already have an analysis for this date
-      const existingAnalysis = await storage.getAnalysis(date, userId);
-      
-      if (existingAnalysis) {
-        // Return the existing analysis if it exists
-        return res.json({ analysis: existingAnalysis });
+      // Check if we already have an analysis for this date (unless regeneration is forced)
+      if (!forceRegenerate) {
+        const existingAnalysis = await storage.getAnalysis(date, userId);
+        
+        if (existingAnalysis) {
+          // Return the existing analysis if it exists
+          return res.json({ analysis: existingAnalysis });
+        }
       }
       
-      // Otherwise, get the notes and generate a new analysis
+      // Get the notes and generate a new analysis
       const notes = await storage.getNotesByDate(date, userId);
       
       if (notes.length === 0) {
