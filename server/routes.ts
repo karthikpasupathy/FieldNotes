@@ -21,8 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   process.env.SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
   setupAuth(app);
   
-  // Reset storage at startup for clean deployment
-  storage.reset();
+  // No longer resetting storage at startup so user data persists
   
   // Password reset request endpoint
   app.post("/api/reset-password-request", async (req, res) => {
