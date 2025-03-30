@@ -1,0 +1,186 @@
+import { useState, useEffect } from "react";
+import { useRoute, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { format, parse, addDays, subDays } from "date-fns";
+import { Calendar as CalendarIcon, ArrowLeftIcon, ArrowRightIcon, List, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import NotesList from "@/components/NotesList";
+import Calendar from "@/components/Calendar";
+import RecentDays from "@/components/RecentDays";
+import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { type Note } from "@shared/schema";
+
+export default function Home() {
+  const [, setLocation] = useLocation();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [match, params] = useRoute("/day/:date");
+  
+  // Get current date from URL or use today's date
+  const today = formatDateForAPI(new Date());
+  const currentDate = match ? params.date : today;
+  
+  // Convert currentDate string to Date object for manipulation
+  const currentDateObj = match && params.date ? 
+    parse(params.date, "yyyy-MM-dd", new Date()) : 
+    new Date();
+
+  // Fetch notes for the current date
+  const { data: notes = [], isLoading } = useQuery<Note[]>({
+    queryKey: [`/api/notes/${currentDate}`],
+  });
+
+  // Fetch recent days with note counts
+  const { data: recentDays = [] } = useQuery<{ date: string; count: number }[]>({
+    queryKey: ['/api/recent-days'],
+  });
+
+  // Handle calendar toggle
+  const toggleCalendar = () => {
+    setIsCalendarOpen(!isCalendarOpen);
+  };
+
+  // Handle date navigation
+  const goToNextDay = () => {
+    const nextDate = formatDateForAPI(addDays(currentDateObj, 1));
+    setLocation(`/day/${nextDate}`);
+  };
+
+  const goToPreviousDay = () => {
+    const prevDate = formatDateForAPI(subDays(currentDateObj, 1));
+    setLocation(`/day/${prevDate}`);
+  };
+
+  const goToDate = (date: Date) => {
+    const formattedDate = formatDateForAPI(date);
+    setLocation(`/day/${formattedDate}`);
+    setIsCalendarOpen(false);
+  };
+
+  // If URL has no date parameter, redirect to today's date
+  useEffect(() => {
+    if (!match) {
+      setLocation(`/day/${today}`);
+    }
+  }, [match, setLocation, today]);
+
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-xl font-bold text-gray-800 flex items-center">
+              <span className="mr-2">📝</span> Field Notes
+            </h1>
+            
+            {/* Date Navigation */}
+            <div className="flex items-center space-x-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full p-2" 
+                onClick={goToPreviousDay}
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-1"
+                onClick={toggleCalendar}
+              >
+                <span>{formatDateForDisplay(currentDateObj)}</span>
+                <CalendarIcon className="h-4 w-4 ml-1" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full p-2" 
+                onClick={goToNextDay}
+              >
+                <ArrowRightIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex flex-col md:flex-row h-full">
+            
+            {/* Left sidebar for desktop */}
+            <div className="hidden md:block md:w-64 pt-6 pr-6">
+              <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold text-gray-800">Calendar</h2>
+                </div>
+                <Calendar 
+                  currentDate={currentDateObj} 
+                  onSelectDate={goToDate} 
+                />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <h2 className="font-semibold text-gray-800 mb-2">Recent Days</h2>
+                <RecentDays 
+                  days={recentDays} 
+                  currentDate={currentDate} 
+                  onSelectDate={(date) => setLocation(`/day/${date}`)} 
+                />
+              </div>
+            </div>
+              
+            {/* Main content area */}
+            <div className="flex-1 pt-6 pb-24 md:pb-6 overflow-auto md:h-[calc(100vh-80px)]">
+              {/* Mobile Calendar (Collapsible) */}
+              {isCalendarOpen && (
+                <div className="md:hidden transition-all duration-300 mb-4">
+                  <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <Calendar 
+                      currentDate={currentDateObj} 
+                      onSelectDate={goToDate} 
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <NotesList 
+                notes={notes} 
+                date={currentDate} 
+                isLoading={isLoading} 
+                displayDate={formatDateForDisplay(currentDateObj)} 
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
+        <div className="max-w-md mx-auto px-4 flex justify-between">
+          <button className="flex flex-col items-center py-3 px-4 text-blue-600">
+            <List className="h-5 w-5" />
+            <span className="text-xs mt-1">Notes</span>
+          </button>
+          <button 
+            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            onClick={toggleCalendar}
+          >
+            <CalendarIcon className="h-5 w-5" />
+            <span className="text-xs mt-1">Calendar</span>
+          </button>
+          <button className="flex flex-col items-center py-3 px-4 text-gray-500">
+            <Settings className="h-5 w-5" />
+            <span className="text-xs mt-1">Settings</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+}
