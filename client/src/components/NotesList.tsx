@@ -119,8 +119,13 @@ export default function NotesList({
           ) : (
             // Empty State
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <p className="text-gray-500">No notes for this day yet</p>
-              <p className="text-sm text-gray-400 mt-2">Add your first note above</p>
+              <p className="text-gray-600 font-medium">No notes for this day yet</p>
+              <div className="max-w-md mx-auto mt-4 text-sm text-gray-500 space-y-3">
+                <p>Field Notes helps you record your daily observations with timestamped entries.</p>
+                <p>Add your first note using the form above. Each note can be up to 280 characters.</p>
+                <p>Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
+                <p>After adding multiple notes, try the "Analyze My Day" feature to get AI-powered insights.</p>
+              </div>
             </div>
           )}
         </div>

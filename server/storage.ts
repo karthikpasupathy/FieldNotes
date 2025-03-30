@@ -37,6 +37,15 @@ export class MemStorage implements IStorage {
       checkPeriod: 86400000 // prune expired entries every 24h
     });
   }
+  
+  // Function to reset all data for deployment/testing
+  reset() {
+    this.users.clear();
+    this.notes.clear();
+    this.userCurrentId = 1;
+    this.noteCurrentId = 1;
+    console.log("Storage reset: All users and notes have been removed");
+  }
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
