@@ -34,7 +34,7 @@ export const insertNoteSchema = createInsertSchema(notes).pick({
 });
 
 export const noteContentSchema = z.object({
-  content: z.string().min(1).max(140),
+  content: z.string().min(1).max(280),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
 });
 

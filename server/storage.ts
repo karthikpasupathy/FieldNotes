@@ -15,6 +15,7 @@ export interface IStorage {
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
   getAllDates(userId?: number): Promise<string[]>;
   createNote(note: InsertNote): Promise<Note>;
+  deleteNote(noteId: number, userId: number): Promise<boolean>;
   getRecentDays(limit: number, userId?: number): Promise<{ date: string; count: number }[]>;
   getDatesWithNotes(userId?: number): Promise<string[]>;
   sessionStore: session.Store;
@@ -116,6 +117,18 @@ export class MemStorage implements IStorage {
     };
     this.notes.set(id, note);
     return note;
+  }
+  
+  async deleteNote(noteId: number, userId: number): Promise<boolean> {
+    const note = this.notes.get(noteId);
+    
+    // Only delete the note if it exists and belongs to the user
+    if (note && note.userId === userId) {
+      this.notes.delete(noteId);
+      return true;
+    }
+    
+    return false;
   }
 
   async getRecentDays(limit: number, userId?: number): Promise<{ date: string; count: number }[]> {

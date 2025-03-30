@@ -2,6 +2,11 @@ import { format } from "date-fns";
 import { type Note } from "@shared/schema";
 import NoteInput from "./NoteInput";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface NotesListProps {
   notes: Note[];
@@ -20,11 +25,37 @@ export default function NotesList({
   analysis,
   isAnalysisLoading = false
 }: NotesListProps) {
+  const { toast } = useToast();
+  
   // Format the note timestamp for display
   const formatNoteTime = (timestamp: Date | string) => {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
     return format(date, "h:mm a");
   };
+  
+  // Delete note mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      await apiRequest("DELETE", `/api/notes/${noteId}`);
+    },
+    onSuccess: () => {
+      // Refresh the notes list
+      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recent-days'] });
+      
+      toast({
+        title: "Note Deleted",
+        description: "Your note has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete note: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
   
   return (
     <div>
@@ -67,8 +98,22 @@ export default function NotesList({
             // Actual Notes
             notes.map((note) => (
               <div key={note.id} className="bg-white rounded-lg shadow-sm p-4 transition-all duration-300 hover:shadow-md">
-                <p className="text-gray-800 mb-2">{note.content}</p>
-                <p className="text-sm text-gray-500">{formatNoteTime(note.timestamp)}</p>
+                <div className="flex justify-between">
+                  <div className="flex-1">
+                    <p className="text-gray-800 mb-2">{note.content}</p>
+                    <p className="text-sm text-gray-500">{formatNoteTime(note.timestamp)}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-red-500 transition-colors h-8 w-8 -mt-1 -mr-2"
+                    onClick={() => deleteNoteMutation.mutate(note.id)}
+                    disabled={deleteNoteMutation.isPending}
+                    title="Delete note"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))
           ) : (

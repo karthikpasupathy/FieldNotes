@@ -14,7 +14,7 @@ export default function NoteInput({ date }: NoteInputProps) {
   const [charCount, setCharCount] = useState(0);
   const { toast } = useToast();
   
-  const MAX_CHARS = 140;
+  const MAX_CHARS = 280;
   
   const createNoteMutation = useMutation({
     mutationFn: async (noteContent: string) => {
@@ -81,8 +81,8 @@ export default function NoteInput({ date }: NoteInputProps) {
   
   // Determine character count color based on proximity to limit
   const getCharCountColor = () => {
-    if (charCount > 130) return "text-red-500";
-    if (charCount > 120) return "text-amber-500";
+    if (charCount > 260) return "text-red-500";
+    if (charCount > 240) return "text-amber-500";
     return "text-gray-500";
   };
   
@@ -92,7 +92,7 @@ export default function NoteInput({ date }: NoteInputProps) {
         <Textarea
           value={content}
           onChange={handleContentChange}
-          placeholder="Add a new note (140 char max)..."
+          placeholder="Add a new note (280 char max)..."
           className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500"
           rows={3}
           maxLength={MAX_CHARS}

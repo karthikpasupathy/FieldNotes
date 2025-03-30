@@ -247,6 +247,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to analyze notes" });
     }
   });
+  
+  // Delete a note
+  app.delete("/api/notes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const noteId = parseInt(req.params.id, 10);
+      
+      if (isNaN(noteId)) {
+        return res.status(400).json({ message: "Invalid note ID" });
+      }
+      
+      const userId = req.user!.id;
+      const success = await storage.deleteNote(noteId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Note not found or you don't have permission to delete it" });
+      }
+      
+      res.status(200).json({ message: "Note deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      res.status(500).json({ message: "Failed to delete note" });
+    }
+  });
 
   const httpServer = createServer(app);
 
