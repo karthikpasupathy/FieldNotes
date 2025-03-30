@@ -7,7 +7,10 @@ import {
   isSameDay, 
   isSameMonth, 
   addMonths, 
-  subMonths 
+  subMonths,
+  parseISO,
+  isValid,
+  formatISO
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,9 +18,14 @@ import { Button } from "@/components/ui/button";
 interface CalendarProps {
   currentDate: Date;
   onSelectDate: (date: Date) => void;
+  highlightedDates?: string[];
 }
 
-export default function Calendar({ currentDate, onSelectDate }: CalendarProps) {
+export default function Calendar({ 
+  currentDate, 
+  onSelectDate, 
+  highlightedDates = [] 
+}: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(currentDate));
   
   // Generate days for current month view
@@ -35,6 +43,14 @@ export default function Calendar({ currentDate, onSelectDate }: CalendarProps) {
   
   const goToNextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1));
+  };
+  
+  // Check if a date has notes (is highlighted)
+  const hasNotes = (date: Date): boolean => {
+    if (!highlightedDates || highlightedDates.length === 0) return false;
+    
+    const dateString = formatISO(date, { representation: 'date' });
+    return highlightedDates.includes(dateString);
   };
   
   return (
@@ -84,21 +100,32 @@ export default function Calendar({ currentDate, onSelectDate }: CalendarProps) {
         {monthDays.map((day) => {
           const isSelected = isSameDay(day, currentDate);
           const isCurrentMonth = isSameMonth(day, currentMonth);
+          const dayHasNotes = hasNotes(day);
           
           return (
-            <Button
-              key={day.toString()}
-              variant={isSelected ? "default" : "ghost"}
-              size="sm"
-              className={`w-8 h-8 rounded-full p-0 ${
-                isSelected 
-                  ? "bg-blue-500 text-white hover:bg-blue-600" 
-                  : "hover:bg-gray-100"
-              } ${!isCurrentMonth ? "text-gray-400" : ""}`}
-              onClick={() => onSelectDate(day)}
-            >
-              {format(day, "d")}
-            </Button>
+            <div key={day.toString()} className="relative w-8 h-8 flex items-center justify-center">
+              <Button
+                variant={isSelected ? "default" : "ghost"}
+                size="sm"
+                className={`w-8 h-8 rounded-full p-0 ${
+                  isSelected 
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                    : "hover:bg-muted"
+                } ${!isCurrentMonth ? "text-muted-foreground" : ""}`}
+                onClick={() => onSelectDate(day)}
+              >
+                {format(day, "d")}
+              </Button>
+              
+              {/* Indicator dot for days with notes */}
+              {dayHasNotes && isCurrentMonth && (
+                <div 
+                  className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+                    isSelected ? "bg-primary-foreground" : "bg-primary"
+                  }`}
+                />
+              )}
+            </div>
           );
         })}
       </div>

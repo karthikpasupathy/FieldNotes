@@ -2,20 +2,33 @@ import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parse, addDays, subDays } from "date-fns";
-import { Calendar as CalendarIcon, ArrowLeftIcon, ArrowRightIcon, List, Settings } from "lucide-react";
+import { 
+  Calendar as CalendarIcon, 
+  ArrowLeftIcon, 
+  ArrowRightIcon, 
+  List, 
+  Settings, 
+  Download, 
+  User as UserIcon
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import NotesList from "@/components/NotesList";
 import Calendar from "@/components/Calendar";
 import RecentDays from "@/components/RecentDays";
+import UserProfile from "@/components/UserProfile";
 import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Note } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [match, params] = useRoute("/day/:date");
+  const { toast } = useToast();
+  const { user } = useAuth();
   
   // Get current date from URL or use today's date
   const today = formatDateForAPI(new Date());
@@ -34,6 +47,11 @@ export default function Home() {
   // Fetch recent days with note counts
   const { data: recentDays = [] } = useQuery<{ date: string; count: number }[]>({
     queryKey: ['/api/recent-days'],
+  });
+  
+  // Fetch dates with notes for calendar indicators
+  const { data: datesWithNotes = [] } = useQuery<string[]>({
+    queryKey: ['/api/dates-with-notes'],
   });
 
   // Handle calendar toggle
@@ -57,6 +75,43 @@ export default function Home() {
     setLocation(`/day/${formattedDate}`);
     setIsCalendarOpen(false);
   };
+  
+  // Handle export notes as markdown
+  const exportNotesAsMarkdown = () => {
+    if (notes.length === 0) {
+      toast({
+        title: "No notes to export",
+        description: "There are no notes available for this date to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Format the notes into markdown
+    const displayDate = formatDateForDisplay(currentDateObj);
+    let markdown = `# Field Notes: ${displayDate}\n\n`;
+    
+    notes.forEach(note => {
+      const noteTime = new Date(note.timestamp).toLocaleTimeString();
+      markdown += `## ${noteTime}\n\n${note.content}\n\n`;
+    });
+    
+    // Create a blob and download it
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `field-notes-${currentDate}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Notes exported",
+      description: `Notes for ${displayDate} have been exported as markdown.`,
+    });
+  };
 
   // If URL has no date parameter, redirect to today's date
   useEffect(() => {
@@ -75,35 +130,52 @@ export default function Home() {
               <span className="mr-2">📝</span> Field Notes
             </h1>
             
-            {/* Date Navigation */}
-            <div className="flex items-center space-x-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="rounded-full p-2" 
-                onClick={goToPreviousDay}
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </Button>
+            <div className="flex items-center space-x-4">
+              {/* Date Navigation */}
+              <div className="flex items-center space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="rounded-full p-2" 
+                  onClick={goToPreviousDay}
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-1"
+                  onClick={toggleCalendar}
+                >
+                  <span>{formatDateForDisplay(currentDateObj)}</span>
+                  <CalendarIcon className="h-4 w-4 ml-1" />
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="rounded-full p-2" 
+                  onClick={goToNextDay}
+                >
+                  <ArrowRightIcon className="h-5 w-5" />
+                </Button>
+              </div>
               
+              {/* Export Button */}
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center space-x-1"
-                onClick={toggleCalendar}
+                onClick={exportNotesAsMarkdown}
+                title="Export as Markdown"
+                className="hidden sm:flex"
               >
-                <span>{formatDateForDisplay(currentDateObj)}</span>
-                <CalendarIcon className="h-4 w-4 ml-1" />
+                <Download className="h-4 w-4 mr-1" />
+                <span className="sr-only sm:not-sr-only">Export</span>
               </Button>
               
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="rounded-full p-2" 
-                onClick={goToNextDay}
-              >
-                <ArrowRightIcon className="h-5 w-5" />
-              </Button>
+              {/* User Profile */}
+              <UserProfile />
             </div>
           </div>
         </div>
@@ -122,7 +194,8 @@ export default function Home() {
                 </div>
                 <Calendar 
                   currentDate={currentDateObj} 
-                  onSelectDate={goToDate} 
+                  onSelectDate={goToDate}
+                  highlightedDates={datesWithNotes}
                 />
               </div>
               
@@ -144,7 +217,8 @@ export default function Home() {
                   <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
                     <Calendar 
                       currentDate={currentDateObj} 
-                      onSelectDate={goToDate} 
+                      onSelectDate={goToDate}
+                      highlightedDates={datesWithNotes}
                     />
                   </div>
                 </div>
@@ -175,9 +249,19 @@ export default function Home() {
             <CalendarIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Calendar</span>
           </button>
-          <button className="flex flex-col items-center py-3 px-4 text-gray-500">
-            <Settings className="h-5 w-5" />
-            <span className="text-xs mt-1">Settings</span>
+          <button 
+            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            onClick={() => setLocation('/profile')}
+          >
+            <UserIcon className="h-5 w-5" />
+            <span className="text-xs mt-1">Profile</span>
+          </button>
+          <button 
+            className="flex flex-col items-center py-3 px-4 text-gray-500"
+            onClick={exportNotesAsMarkdown}
+          >
+            <Download className="h-5 w-5" />
+            <span className="text-xs mt-1">Export</span>
           </button>
         </div>
       </nav>
