@@ -1,6 +1,30 @@
+
 # Field Notes
 
 A daily notes application with timestamps built with React, Express, and PostgreSQL.
+
+## Quick Start with Replit
+
+1. Click this button to create a new Repl with this code:
+   [![Run on Repl.it](https://replit.com/badge/github/your-username/field-notes)](https://replit.com/github/your-username/field-notes)
+
+   Or manually:
+   - Open [Replit](https://replit.com)
+   - Click "Create Repl"
+   - Choose "Import from GitHub"
+   - Paste the repository URL
+
+2. Once imported, Replit will automatically install dependencies
+
+3. Set up your environment variables in Replit Secrets:
+   - Click on "Tools" in the left sidebar
+   - Select "Secrets"
+   - Add the following secrets:
+     - `DATABASE_URL` (Replit will auto-provision a database)
+     - `SESSION_SECRET` (any random string)
+     - `OPENAI_API_KEY` (optional, for AI features)
+
+4. Click the "Run" button to start the app
 
 ## Features
 
@@ -10,26 +34,19 @@ A daily notes application with timestamps built with React, Express, and Postgre
 - Calendar view
 - Period analysis
 
-## Getting Started
-
-1. Click "Fork" to create your own copy of this Repl
-2. Create a PostgreSQL database in your Repl
-3. Add required environment variables in Replit Secrets:
-   - DATABASE_URL (from your Repl database)
-   - OPENAI_API_KEY (optional, for AI features)
-   - SESSION_SECRET (for secure sessions)
-
 ## Development
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+To run the development server locally in Replit:
+```bash
+npm run dev
+```
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Tech Stack
+
+- Frontend: React, TypeScript, Tailwind CSS
+- Backend: Express.js, PostgreSQL
+- Authentication: Passport.js
+- Database ORM: Drizzle
 
 ## Contributing
 
@@ -38,13 +55,6 @@ A daily notes application with timestamps built with React, Express, and Postgre
 3. Commit your changes
 4. Push to your fork
 5. Open a Pull Request
-
-## Tech Stack
-
-- Frontend: React, TypeScript, Tailwind CSS
-- Backend: Express.js, PostgreSQL
-- Authentication: Passport.js
-- Database ORM: Drizzle
 
 ## Security
 
