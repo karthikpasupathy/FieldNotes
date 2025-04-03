@@ -528,6 +528,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ success: true });
   });
   
+  // Admin auth check endpoint
+  app.get("/api/admin-auth-check", (req, res) => {
+    if (req.session?.isAdmin) {
+      res.status(200).json({ isAdmin: true });
+    } else {
+      res.status(401).json({ isAdmin: false });
+    }
+  });
+  
   // Admin statistics endpoint
   app.get("/api/admin-stats", isAdmin, async (req, res) => {
     try {

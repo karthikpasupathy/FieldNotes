@@ -14,13 +14,22 @@ export const CustomIcons = {
   Settings
 };
 
-// Determine whether to render the admin or main app based on URL
-const isAdminPath = window.location.pathname.startsWith('/admin');
+// Define path map for different apps
+type AppType = "main" | "admin";
 
-// Create separate roots for each app to prevent hook sharing issues
+const getAppType = (): AppType => {
+  if (window.location.pathname.startsWith('/admin')) {
+    return "admin";
+  }
+  return "main";
+};
+
+// Render appropriate app based on path
 const root = createRoot(document.getElementById("root")!);
+const appType = getAppType();
 
-if (isAdminPath) {
+// Use separate entry points for admin and main apps to avoid hook sharing issues
+if (appType === "admin") {
   root.render(
     <StrictMode>
       <AdminApp />
