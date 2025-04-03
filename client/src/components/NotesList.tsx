@@ -63,11 +63,12 @@ export default function NotesList({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">{displayDate}</h2>
+        <h2 className="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700">{displayDate}</h2>
         
         {/* AI Analysis */}
         {isAnalysisLoading && (
-          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
+          <div className="rounded-lg p-4 mb-4 shadow-md border border-blue-100"
+               style={{background: "linear-gradient(120deg, #e0f2fe, #dbeafe)"}}>
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-3/4 mb-2" />
             <Skeleton className="h-4 w-1/2" />
@@ -75,14 +76,15 @@ export default function NotesList({
         )}
         
         {analysis && !isAnalysisLoading && (
-          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
+          <div className="rounded-lg p-4 mb-4 shadow-md border border-blue-200"
+               style={{background: "linear-gradient(120deg, #e0f2fe, #dbeafe)"}}>
             <div className="flex justify-between items-center mb-1">
-              <p className="text-blue-800 font-medium">Daily Analysis</p>
+              <div className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-800">Daily Analysis</div>
               {onRegenerateAnalysis && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                  className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                   onClick={onRegenerateAnalysis}
                   title="Regenerate analysis"
                 >
@@ -115,16 +117,18 @@ export default function NotesList({
           ) : notes.length > 0 ? (
             // Actual Notes
             notes.map((note) => (
-              <div key={note.id} className="bg-white rounded-lg shadow-sm p-4 transition-all duration-300 hover:shadow-md">
+              <div key={note.id} className="note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border border-blue-50">
                 <div className="flex justify-between">
                   <div className="flex-1">
                     <p className="text-gray-800 mb-2">{note.content}</p>
-                    <p className="text-sm text-gray-500">{formatNoteTime(note.timestamp)}</p>
+                    <p className="text-sm" style={{ background: "linear-gradient(to right, #6366f1, #8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                      {formatNoteTime(note.timestamp)}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-gray-400 hover:text-red-500 transition-colors h-8 w-8 -mt-1 -mr-2"
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 h-8 w-8 -mt-1 -mr-2 rounded-full"
                     onClick={() => deleteNoteMutation.mutate(note.id)}
                     disabled={deleteNoteMutation.isPending}
                     title="Delete note"
@@ -136,12 +140,13 @@ export default function NotesList({
             ))
           ) : (
             // Empty State
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <p className="text-gray-600 font-medium">No notes for this day yet</p>
-              <div className="max-w-md mx-auto mt-4 text-sm text-gray-500 space-y-3">
-                <p>Field Notes helps you record your daily observations with timestamped entries.</p>
-                <p>Add your first note using the form above. Each note can be up to 280 characters.</p>
-                <p>Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
+            <div className="rounded-lg shadow-md p-8 text-center" 
+                 style={{background: "linear-gradient(135deg, #fff, #f3f4f6, #f0f7ff)"}}>
+              <p className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 text-lg">No notes for this day yet</p>
+              <div className="max-w-md mx-auto mt-4 text-sm text-gray-600 space-y-3">
+                <p className="border-b border-blue-100 pb-2">Field Notes helps you record your daily observations with timestamped entries.</p>
+                <p className="border-b border-blue-100 pb-2">Add your first note using the form above. Each note can be up to 280 characters.</p>
+                <p className="border-b border-blue-100 pb-2">Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
                 <p>After adding multiple notes, try the "Analyze My Day" feature to get AI-powered insights.</p>
               </div>
             </div>

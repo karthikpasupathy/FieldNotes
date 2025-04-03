@@ -87,24 +87,28 @@ export default function NoteInput({ date }: NoteInputProps) {
   };
   
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-4 mb-6">
+    <form onSubmit={handleSubmit} className="card-gradient rounded-lg shadow-md p-4 mb-6 border border-blue-50">
       <div className="mb-2">
         <Textarea
           value={content}
           onChange={handleContentChange}
           placeholder="Add a new note (280 char max)..."
-          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500"
+          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
           rows={3}
           maxLength={MAX_CHARS}
+          style={{
+            backgroundImage: "linear-gradient(to bottom, #ffffff, #fafcff)",
+            boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.05)"
+          }}
         />
       </div>
       <div className="flex justify-between items-center">
-        <div className={`text-sm ${getCharCountColor()}`}>
+        <div className={`text-sm font-medium ${getCharCountColor()}`}>
           <span>{charCount}</span>/{MAX_CHARS}
         </div>
         <Button 
           type="submit" 
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition"
+          className="btn-gradient px-5 py-2 rounded-full text-white transition-all duration-300"
           disabled={content.trim().length === 0 || createNoteMutation.isPending}
         >
           {createNoteMutation.isPending ? "Adding..." : "Add Note"}

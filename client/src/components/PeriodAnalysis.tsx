@@ -157,16 +157,16 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
-      <Card>
+      <Card className="card-gradient border border-blue-100 shadow-md">
         <CardHeader className="p-4 flex items-center">
           <div className="flex justify-between items-center w-full">
-            <CardTitle className="text-lg my-0 ml-1">Period Analysis</CardTitle>
+            <CardTitle className="text-lg my-0 ml-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700">Period Analysis</CardTitle>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-blue-50 transition-colors">
                 {isOpen ? (
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="h-4 w-4 text-blue-600" />
                 ) : (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4 text-blue-600" />
                 )}
               </Button>
             </CollapsibleTrigger>
@@ -176,9 +176,19 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
         <CollapsibleContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
             <div className="px-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="week">This Week</TabsTrigger>
-                <TabsTrigger value="month">This Month</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-blue-50/70 p-1 rounded-lg">
+                <TabsTrigger 
+                  value="week" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-md transition-all duration-300"
+                >
+                  This Week
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="month" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-md transition-all duration-300"
+                >
+                  This Month
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -190,7 +200,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!weeklyAnalysis && (
                     <Button 
-                      variant="outline" 
+                      className="btn-gradient rounded-full shadow-md"
                       size="sm"
                       onClick={() => analyzePeriod('week')}
                       disabled={isWeeklyFetching}
@@ -212,14 +222,15 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
                 ) : weeklyAnalysis ? (
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <div className="rounded-lg p-4 shadow-md border border-blue-200"
+                       style={{background: "linear-gradient(120deg, #e0f2fe, #dbeafe)"}}>
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-blue-800 font-medium">Weekly Analysis</p>
+                      <div className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-800">Weekly Analysis</div>
                       {weeklyAnalysis && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                           onClick={() => regenerateAnalysis('week')}
                           title="Regenerate analysis"
                         >
@@ -247,7 +258,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!monthlyAnalysis && (
                     <Button 
-                      variant="outline" 
+                      className="btn-gradient rounded-full shadow-md" 
                       size="sm"
                       onClick={() => analyzePeriod('month')}
                       disabled={isMonthlyFetching}
@@ -269,14 +280,15 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
                 ) : monthlyAnalysis ? (
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <div className="rounded-lg p-4 shadow-md border border-blue-200"
+                       style={{background: "linear-gradient(120deg, #e0f2fe, #dbeafe)"}}>
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-blue-800 font-medium">Monthly Analysis</p>
+                      <div className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-800">Monthly Analysis</div>
                       {monthlyAnalysis && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 -mr-1"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                           onClick={() => regenerateAnalysis('month')}
                           title="Regenerate analysis"
                         >
