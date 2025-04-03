@@ -121,7 +121,7 @@ export default function Calendar({
               {dayHasNotes && isCurrentMonth && (
                 <div 
                   className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full ${
-                    isSelected ? "bg-primary-foreground" : "bg-primary"
+                    isSelected ? "bg-yellow-300" : "bg-yellow-400"
                   }`}
                   style={{ pointerEvents: 'none' }}
                 />

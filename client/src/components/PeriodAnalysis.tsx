@@ -157,16 +157,16 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
-      <Card className="card-gradient border border-green-100 shadow-md">
+      <Card className="card-gradient border border-blue-100 shadow-md">
         <CardHeader className="p-4 flex items-center">
           <div className="flex justify-between items-center w-full">
-            <CardTitle className="text-lg my-0 ml-1 text-black">Period Analysis</CardTitle>
+            <CardTitle className="text-lg my-0 ml-1 text-blue-900">Period Analysis</CardTitle>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-green-50 transition-colors">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-blue-50 transition-colors">
                 {isOpen ? (
-                  <ChevronUp className="h-4 w-4 text-green-600" />
+                  <ChevronUp className="h-4 w-4 text-blue-600" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-green-600" />
+                  <ChevronDown className="h-4 w-4 text-blue-600" />
                 )}
               </Button>
             </CollapsibleTrigger>
@@ -176,16 +176,16 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
         <CollapsibleContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
             <div className="px-6">
-              <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-lg border border-green-200">
+              <TabsList className="grid w-full grid-cols-2 bg-blue-50 p-1 rounded-lg border border-blue-200">
                 <TabsTrigger 
                   value="week" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=inactive]:text-black rounded-md transition-all duration-300 font-medium"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white data-[state=inactive]:text-black rounded-md transition-all duration-300 font-medium"
                 >
                   This Week
                 </TabsTrigger>
                 <TabsTrigger 
                   value="month" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=inactive]:text-black rounded-md transition-all duration-300 font-medium"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white data-[state=inactive]:text-black rounded-md transition-all duration-300 font-medium"
                 >
                   This Month
                 </TabsTrigger>
@@ -200,7 +200,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!weeklyAnalysis && (
                     <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-md"
                       size="sm"
                       onClick={() => analyzePeriod('week')}
                       disabled={isWeeklyFetching}
@@ -222,15 +222,14 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
                 ) : weeklyAnalysis ? (
-                  <div className="rounded-lg p-4 shadow-md border border-green-200"
-                       style={{background: "linear-gradient(120deg, #f0fff5, #e5f7ef)"}}>
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="font-medium text-black">Weekly Analysis</div>
+                  <div className="analysis-box">
+                    <div className="analysis-box-header">
+                      <div className="analysis-box-title">Weekly Analysis</div>
                       {weeklyAnalysis && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-green-600 hover:text-green-800 hover:bg-green-100/50 -mr-1 rounded-full"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                           onClick={() => regenerateAnalysis('week')}
                           title="Regenerate analysis"
                         >
@@ -238,7 +237,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                         </Button>
                       )}
                     </div>
-                    <div className="prose prose-sm max-w-none text-black">
+                    <div className="analysis-content">
                       <ReactMarkdown>{weeklyAnalysis.analysis}</ReactMarkdown>
                     </div>
                   </div>
@@ -258,7 +257,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!monthlyAnalysis && (
                     <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-md" 
                       size="sm"
                       onClick={() => analyzePeriod('month')}
                       disabled={isMonthlyFetching}
@@ -280,15 +279,14 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
                 ) : monthlyAnalysis ? (
-                  <div className="rounded-lg p-4 shadow-md border border-green-200"
-                       style={{background: "linear-gradient(120deg, #f0fff5, #e5f7ef)"}}>
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="font-medium text-black">Monthly Analysis</div>
+                  <div className="analysis-box">
+                    <div className="analysis-box-header">
+                      <div className="analysis-box-title">Monthly Analysis</div>
                       {monthlyAnalysis && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-green-600 hover:text-green-800 hover:bg-green-100/50 -mr-1 rounded-full"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                           onClick={() => regenerateAnalysis('month')}
                           title="Regenerate analysis"
                         >
@@ -296,7 +294,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                         </Button>
                       )}
                     </div>
-                    <div className="prose prose-sm max-w-none text-black">
+                    <div className="analysis-content">
                       <ReactMarkdown>{monthlyAnalysis.analysis}</ReactMarkdown>
                     </div>
                   </div>

@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F9FAFB",
-  "theme_color": "#10b981",
+  "theme_color": "#3b4e87",
   "icons": [
     {
       "src": "images/daynotes-logo.png",

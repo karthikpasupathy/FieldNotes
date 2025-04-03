@@ -67,8 +67,7 @@ export default function NotesList({
         
         {/* AI Analysis */}
         {isAnalysisLoading && (
-          <div className="rounded-lg p-4 mb-4 shadow-md border border-green-100"
-               style={{background: "linear-gradient(120deg, #f0fff5, #e5f7ef)"}}>
+          <div className="analysis-box">
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-3/4 mb-2" />
             <Skeleton className="h-4 w-1/2" />
@@ -76,15 +75,14 @@ export default function NotesList({
         )}
         
         {analysis && !isAnalysisLoading && (
-          <div className="rounded-lg p-4 mb-4 shadow-md border border-green-200"
-               style={{background: "linear-gradient(120deg, #f0fff5, #e5f7ef)"}}>
-            <div className="flex justify-between items-center mb-1">
-              <div className="font-medium text-black">Daily Analysis</div>
+          <div className="analysis-box">
+            <div className="analysis-box-header">
+              <div className="analysis-box-title">Daily Analysis</div>
               {onRegenerateAnalysis && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-green-600 hover:text-green-800 hover:bg-green-100/50 -mr-1 rounded-full"
+                  className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
                   onClick={onRegenerateAnalysis}
                   title="Regenerate analysis"
                 >
@@ -92,7 +90,7 @@ export default function NotesList({
                 </Button>
               )}
             </div>
-            <div className="prose prose-sm max-w-none text-black">
+            <div className="analysis-content">
               <ReactMarkdown>{analysis}</ReactMarkdown>
             </div>
           </div>
@@ -117,11 +115,11 @@ export default function NotesList({
           ) : notes.length > 0 ? (
             // Actual Notes
             notes.map((note) => (
-              <div key={note.id} className="note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border border-green-50">
+              <div key={note.id} className="note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border border-blue-50">
                 <div className="flex justify-between">
                   <div className="flex-1">
                     <p className="text-gray-800 mb-2">{note.content}</p>
-                    <p className="text-sm text-green-600 font-medium">
+                    <p className="text-sm text-blue-600 font-medium">
                       {formatNoteTime(note.timestamp)}
                     </p>
                   </div>
@@ -141,12 +139,12 @@ export default function NotesList({
           ) : (
             // Empty State
             <div className="rounded-lg shadow-md p-8 text-center" 
-                 style={{background: "linear-gradient(135deg, #fff, #f3f4f6, #f0f9f5)"}}>
-              <p className="font-semibold text-black text-lg">No notes for this day yet</p>
+                 style={{background: "linear-gradient(135deg, #fff, #f7f9fd, #eaf0f9)"}}>
+              <p className="font-semibold text-blue-900 text-lg">No notes for this day yet</p>
               <div className="max-w-md mx-auto mt-4 text-sm text-gray-600 space-y-3">
-                <p className="border-b border-green-100 pb-2">Daynotes helps you record your daily observations with timestamped entries.</p>
-                <p className="border-b border-green-100 pb-2">Add your first note using the form above. Each note can be up to 280 characters.</p>
-                <p className="border-b border-green-100 pb-2">Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
+                <p className="border-b border-blue-100 pb-2">Daynotes helps you record your daily observations with timestamped entries.</p>
+                <p className="border-b border-blue-100 pb-2">Add your first note using the form above. Each note can be up to 280 characters.</p>
+                <p className="border-b border-blue-100 pb-2">Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
                 <p>After adding multiple notes, try the "Analyze My Day" feature to get AI-powered insights.</p>
               </div>
             </div>
