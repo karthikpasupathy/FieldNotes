@@ -200,7 +200,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!weeklyAnalysis && (
                     <Button 
-                      className="btn-gradient shadow-md"
+                      className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md"
                       size="sm"
                       onClick={() => analyzePeriod('week')}
                       disabled={isWeeklyFetching}
@@ -258,7 +258,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!monthlyAnalysis && (
                     <Button 
-                      className="btn-gradient shadow-md" 
+                      className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md" 
                       size="sm"
                       onClick={() => analyzePeriod('month')}
                       disabled={isMonthlyFetching}

@@ -83,21 +83,21 @@ export default function NoteInput({ date }: NoteInputProps) {
   const getCharCountColor = () => {
     if (charCount > 260) return "text-red-500";
     if (charCount > 240) return "text-amber-500";
-    return "text-gray-500";
+    return "text-green-500";
   };
   
   return (
-    <form onSubmit={handleSubmit} className="card-gradient rounded-lg shadow-md p-4 mb-6 border border-blue-50">
+    <form onSubmit={handleSubmit} className="rounded-lg shadow-md p-4 mb-6 border border-gray-100 bg-white">
       <div className="mb-2">
         <Textarea
           value={content}
           onChange={handleContentChange}
           placeholder="Add a new note (280 char max)..."
-          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
+          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-green-500 focus:border-transparent rounded-md border-green-200"
           rows={3}
           maxLength={MAX_CHARS}
           style={{
-            backgroundImage: "linear-gradient(to bottom, #ffffff, #fafcff)",
+            backgroundColor: "#ffffff",
             boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.05)"
           }}
         />
@@ -108,7 +108,7 @@ export default function NoteInput({ date }: NoteInputProps) {
         </div>
         <Button 
           type="submit" 
-          className="btn-gradient px-5 py-2 text-white transition-all duration-300"
+          className="bg-green-600 hover:bg-green-700 text-white rounded-md px-5 py-2 transition-all duration-300"
           disabled={content.trim().length === 0 || createNoteMutation.isPending}
         >
           {createNoteMutation.isPending ? "Adding..." : "Add Note"}
