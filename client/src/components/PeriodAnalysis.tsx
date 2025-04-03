@@ -123,12 +123,11 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
         description: `Using AI to reanalyze your notes for ${displayRange}...`,
       });
 
-      // Make a direct fetch with regenerate parameter
-      const response = await apiRequest('POST', '/api/analyze-period', {
+      // Make a direct fetch with regenerate parameter as a query parameter
+      const response = await apiRequest('POST', '/api/analyze-period?regenerate=true', {
         startDate,
         endDate,
-        periodType,
-        regenerate: true
+        periodType
       });
       
       if (!response.ok) {
