@@ -291,7 +291,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right side hero section */}
-      <div className="hidden lg:block relative flex-1 bg-gradient-to-br from-blue-600 to-indigo-800">
+      <div className="hidden lg:block relative flex-1 bg-gradient-to-br from-green-600 to-emerald-800">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjA1Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZ2LTJoLTJ2MmgyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
         <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-12">
           <div className="max-w-lg text-center">
