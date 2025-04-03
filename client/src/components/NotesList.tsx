@@ -144,7 +144,7 @@ export default function NotesList({
                  style={{background: "linear-gradient(135deg, #fff, #f3f4f6, #f0f9f5)"}}>
               <p className="font-semibold text-black text-lg">No notes for this day yet</p>
               <div className="max-w-md mx-auto mt-4 text-sm text-gray-600 space-y-3">
-                <p className="border-b border-green-100 pb-2">Field Notes helps you record your daily observations with timestamped entries.</p>
+                <p className="border-b border-green-100 pb-2">Daynotes helps you record your daily observations with timestamped entries.</p>
                 <p className="border-b border-green-100 pb-2">Add your first note using the form above. Each note can be up to 280 characters.</p>
                 <p className="border-b border-green-100 pb-2">Use the calendar to navigate between days or click on recent days to quickly view your notes.</p>
                 <p>After adding multiple notes, try the "Analyze My Day" feature to get AI-powered insights.</p>

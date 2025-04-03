@@ -161,7 +161,7 @@ export default function Home() {
     
     // Format the notes into markdown
     const displayDate = formatDateForDisplay(currentDateObj);
-    let markdown = `# Field Notes: ${displayDate}\n\n`;
+    let markdown = `# Daynotes: ${displayDate}\n\n`;
     
     notes.forEach(note => {
       const noteTime = new Date(note.timestamp).toLocaleTimeString();
@@ -173,7 +173,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `field-notes-${currentDate}.md`;
+    a.download = `daynotes-${currentDate}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -232,7 +232,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <h1 className="text-xl font-bold text-gray-800 flex items-center">
-              <span className="mr-2">📝</span> <span className="hidden sm:inline">Field Notes</span>
+              <img src="/images/daynotes-logo.png" alt="Daynotes Logo" className="h-8 w-8 mr-2" /> 
+              <span className="hidden sm:inline">Daynotes</span>
             </h1>
             
             <div className="flex items-center space-x-4">
