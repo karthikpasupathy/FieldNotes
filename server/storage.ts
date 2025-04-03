@@ -39,6 +39,11 @@ export interface IStorage {
   getAnalysis(date: string, userId: number): Promise<string | null>;
   savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
   getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
+  // Admin statistics methods
+  getTotalUsers(): Promise<number>;
+  getActiveUsersSince(date: Date): Promise<number>;
+  getTotalNotes(): Promise<number>;
+  getTotalAnalyses(): Promise<number>;
   sessionStore: session.Store;
 }
 
@@ -247,6 +252,29 @@ export class MemStorage implements IStorage {
       );
     
     return analysis || null;
+  }
+  
+  // Admin statistics methods
+  async getTotalUsers(): Promise<number> {
+    return this.users.size;
+  }
+  
+  async getActiveUsersSince(date: Date): Promise<number> {
+    // For MemStorage, we just return total users as we don't track login dates
+    return this.users.size;
+  }
+  
+  async getTotalNotes(): Promise<number> {
+    return this.notes.size;
+  }
+  
+  async getTotalAnalyses(): Promise<number> {
+    // Count daily analyses (notes with non-null analysis field) + period analyses
+    const dailyAnalysesCount = Array.from(this.notes.values())
+      .filter(note => note.analysis !== null)
+      .length;
+    
+    return dailyAnalysesCount + this.periodAnalyses.size;
   }
 }
 
@@ -595,6 +623,67 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error getting period analysis:`, error);
       return null;
+    }
+  }
+  
+  // Admin statistics methods
+  async getTotalUsers(): Promise<number> {
+    try {
+      const result = await this.executeQuery('SELECT COUNT(*) as count FROM users');
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error('Error getting total users count:', error);
+      return 0;
+    }
+  }
+  
+  async getActiveUsersSince(date: Date): Promise<number> {
+    try {
+      // Since we don't track login dates directly, 
+      // use the most recent note timestamp as a proxy for user activity
+      const result = await this.executeQuery(
+        `SELECT COUNT(DISTINCT user_id) as count 
+         FROM notes 
+         WHERE timestamp >= $1`,
+        [date]
+      );
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error('Error getting active users count:', error);
+      return 0;
+    }
+  }
+  
+  async getTotalNotes(): Promise<number> {
+    try {
+      const result = await this.executeQuery('SELECT COUNT(*) as count FROM notes');
+      return parseInt(result.rows[0].count, 10);
+    } catch (error) {
+      console.error('Error getting total notes count:', error);
+      return 0;
+    }
+  }
+  
+  async getTotalAnalyses(): Promise<number> {
+    try {
+      // Count daily analyses (notes with non-null analysis field) + period analyses
+      const dailyResult = await this.executeQuery(
+        `SELECT COUNT(DISTINCT user_id, date) as count
+         FROM notes
+         WHERE analysis IS NOT NULL`
+      );
+      
+      const periodResult = await this.executeQuery(
+        'SELECT COUNT(*) as count FROM period_analyses'
+      );
+      
+      const dailyCount = parseInt(dailyResult.rows[0].count, 10);
+      const periodCount = parseInt(periodResult.rows[0].count, 10);
+      
+      return dailyCount + periodCount;
+    } catch (error) {
+      console.error('Error getting total analyses count:', error);
+      return 0;
     }
   }
 }

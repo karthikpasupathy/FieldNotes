@@ -8,6 +8,14 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
+import session from "express-session";
+
+// Extend the Express session type
+declare module "express-session" {
+  interface SessionData {
+    isAdmin: boolean;
+  }
+}
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -15,6 +23,15 @@ function isAuthenticated(req: Request, res: Response, next: NextFunction) {
     return next();
   }
   res.status(401).json({ message: "Unauthorized" });
+}
+
+// Middleware to check if user is admin
+function isAdmin(req: Request, res: Response, next: NextFunction) {
+  // Check if user is authenticated and is admin
+  if (req.session?.isAdmin) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized: Admin access required" });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -276,28 +293,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create a folder for each year/month
         const folderRef = zip.folder(folder);
         
-        // Add files for each date
-        for (const { date, dateObj, notes } of dateData) {
-          const formattedDate = dateObj.toLocaleDateString('en-US', { 
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          
-          // Create markdown content
-          let markdown = `# Daynotes: ${formattedDate}\n\n`;
-          
-          notes.forEach((note: Note) => {
-            const timestamp = new Date(note.timestamp).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit'
+        if (folderRef) {
+          // Add files for each date
+          for (const { date, dateObj, notes } of dateData) {
+            const formattedDate = dateObj.toLocaleDateString('en-US', { 
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             });
-            markdown += `## ${timestamp}\n${note.content}\n\n`;
-          });
-          
-          // Add file to the folder
-          folderRef.file(`${date}.md`, markdown);
+            
+            // Create markdown content
+            let markdown = `# Daynotes: ${formattedDate}\n\n`;
+            
+            notes.forEach((note: Note) => {
+              const timestamp = new Date(note.timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              markdown += `## ${timestamp}\n${note.content}\n\n`;
+            });
+            
+            // Add file to the folder
+            folderRef.file(`${date}.md`, markdown);
+          }
         }
       }
       
@@ -479,6 +498,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching period analysis:", error);
       res.status(500).json({ message: "Failed to fetch period analysis" });
+    }
+  });
+
+  // Admin API Routes
+  
+  // Admin login endpoint
+  app.post("/api/admin-login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Check against hardcoded admin credentials
+      if (username === "admin" && password === "admin@123") {
+        // Set admin session flag
+        req.session.isAdmin = true;
+        return res.status(200).json({ success: true });
+      }
+      
+      res.status(401).json({ message: "Invalid admin credentials" });
+    } catch (error) {
+      console.error("Error during admin login:", error);
+      res.status(500).json({ message: "Admin login failed" });
+    }
+  });
+  
+  // Admin logout endpoint
+  app.post("/api/admin-logout", (req, res) => {
+    req.session.isAdmin = false;
+    res.status(200).json({ success: true });
+  });
+  
+  // Admin statistics endpoint
+  app.get("/api/admin-stats", isAdmin, async (req, res) => {
+    try {
+      // Get total number of registered users
+      const totalUsers = await storage.getTotalUsers();
+      
+      // Get number of active users (logged in at least once in the last 14 days)
+      const twoWeeksAgo = new Date();
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+      const activeUsers = await storage.getActiveUsersSince(twoWeeksAgo);
+      
+      // Get total number of notes
+      const totalNotes = await storage.getTotalNotes();
+      
+      // Get total number of analyses (daily + period)
+      const totalAnalyses = await storage.getTotalAnalyses();
+      
+      res.json({
+        totalUsers,
+        activeUsers,
+        totalNotes,
+        totalAnalyses
+      });
+    } catch (error) {
+      console.error("Error fetching admin statistics:", error);
+      res.status(500).json({ message: "Failed to fetch admin statistics" });
     }
   });
 

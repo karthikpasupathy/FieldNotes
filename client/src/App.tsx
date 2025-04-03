@@ -10,31 +10,25 @@ import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 
-function Router() {
-  return (
-    <Switch>
-      {/* Protected Routes */}
-      <ProtectedRoute path="/" component={Home} />
-      <ProtectedRoute path="/day/:date" component={Home} />
-      <ProtectedRoute path="/profile" component={ProfilePage} />
-      
-      {/* Public Routes */}
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/reset-password" component={ResetPasswordPage} />
-      
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <Switch>
+          {/* Protected Routes */}
+          <ProtectedRoute path="/" component={Home} />
+          <ProtectedRoute path="/day/:date" component={Home} />
+          <ProtectedRoute path="/profile" component={ProfilePage} />
+          
+          {/* Public Routes */}
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
+          
+          {/* Fallback to 404 */}
+          <Route component={NotFound} />
+        </Switch>
       </AuthProvider>
+      <Toaster />
     </QueryClientProvider>
   );
 }
