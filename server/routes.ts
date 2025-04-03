@@ -7,6 +7,7 @@ import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
+import JSZip from "jszip";
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -240,7 +241,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create a zip file
-      const JSZip = require('jszip');
       const zip = new JSZip();
       
       // Group by year and month for better organization
