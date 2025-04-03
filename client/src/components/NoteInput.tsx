@@ -108,7 +108,7 @@ export default function NoteInput({ date }: NoteInputProps) {
         </div>
         <Button 
           type="submit" 
-          className="btn-gradient px-5 py-2 rounded-full text-white transition-all duration-300"
+          className="btn-gradient px-5 py-2 text-white transition-all duration-300"
           disabled={content.trim().length === 0 || createNoteMutation.isPending}
         >
           {createNoteMutation.isPending ? "Adding..." : "Add Note"}

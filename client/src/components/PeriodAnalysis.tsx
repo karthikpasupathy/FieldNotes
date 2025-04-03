@@ -176,16 +176,16 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
         <CollapsibleContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PeriodType)}>
             <div className="px-6">
-              <TabsList className="grid w-full grid-cols-2 bg-blue-50/70 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-2 bg-blue-100 p-1 rounded-lg border border-blue-200">
                 <TabsTrigger 
                   value="week" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-md transition-all duration-300"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=inactive]:text-blue-800 rounded-md transition-all duration-300 font-medium"
                 >
                   This Week
                 </TabsTrigger>
                 <TabsTrigger 
                   value="month" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-md transition-all duration-300"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=inactive]:text-blue-800 rounded-md transition-all duration-300 font-medium"
                 >
                   This Month
                 </TabsTrigger>
@@ -200,7 +200,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!weeklyAnalysis && (
                     <Button 
-                      className="btn-gradient rounded-full shadow-md"
+                      className="btn-gradient shadow-md"
                       size="sm"
                       onClick={() => analyzePeriod('week')}
                       disabled={isWeeklyFetching}
@@ -258,7 +258,7 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                   </Badge>
                   {!monthlyAnalysis && (
                     <Button 
-                      className="btn-gradient rounded-full shadow-md" 
+                      className="btn-gradient shadow-md" 
                       size="sm"
                       onClick={() => analyzePeriod('month')}
                       disabled={isMonthlyFetching}

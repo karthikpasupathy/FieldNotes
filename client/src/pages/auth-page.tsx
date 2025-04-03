@@ -81,23 +81,23 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex min-h-screen">
       {/* Left side with form */}
-      <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24">
+      <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-white">
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary">
+            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-gray-900">
               Field Notes
             </h1>
-            <p className="mt-3 text-lg text-muted-foreground">
+            <p className="mt-3 text-lg text-gray-600">
               Track your daily observations with timestamps
             </p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
+              <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="space-y-4 mt-6">
@@ -133,7 +133,7 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full btn-gradient"
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? (
@@ -230,7 +230,7 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full btn-gradient"
                     disabled={registerMutation.isPending}
                   >
                     {registerMutation.isPending ? (
@@ -265,7 +265,7 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full btn-gradient"
                     disabled={resetPasswordRequestMutation.isPending}
                   >
                     {resetPasswordRequestMutation.isPending ? (
@@ -291,8 +291,8 @@ export default function AuthPage() {
       </div>
 
       {/* Right side hero section */}
-      <div className="hidden lg:block relative flex-1 bg-gradient-to-br from-primary/80 to-primary-foreground">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iLjA1Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZ2LTJoLTJ2MmgyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
+      <div className="hidden lg:block relative flex-1 bg-gradient-to-br from-blue-600 to-indigo-800">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjA1Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZ2LTJoLTJ2MmgyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
         <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-12">
           <div className="max-w-lg text-center">
             <h2 className="text-4xl font-bold mb-6">Capture Your Field Observations</h2>

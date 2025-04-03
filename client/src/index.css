@@ -17,7 +17,7 @@
 @layer components {
   /* Gradient buttons */
   .btn-gradient {
-    @apply bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden;
+    @apply bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden rounded-lg;
     background-size: 200% auto;
     animation: gradientShift 5s ease infinite;
   }
