@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
@@ -202,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Create markdown content
-      let markdown = `# Field Notes: ${formattedDate}\n\n`;
+      let markdown = `# Daynotes: ${formattedDate}\n\n`;
       
       notes.forEach(note => {
         const timestamp = new Date(note.timestamp).toLocaleTimeString('en-US', {
@@ -214,12 +214,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set response headers for downloading as a file
       res.setHeader('Content-Type', 'text/markdown');
-      res.setHeader('Content-Disposition', `attachment; filename="field-notes-${date}.md"`);
+      res.setHeader('Content-Disposition', `attachment; filename="daynotes-${date}.md"`);
       
       res.send(markdown);
     } catch (error) {
       console.error("Error exporting notes:", error);
       res.status(500).json({ message: "Failed to export notes" });
+    }
+  });
+  
+  // Endpoint to export all notes for a user
+  app.get("/api/export-all", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get all dates with notes for the user
+      const dates = await storage.getDatesWithNotes(userId);
+      
+      if (dates.length === 0) {
+        return res.status(404).json({ message: "No notes found for this user" });
+      }
+      
+      // Create a zip file
+      const JSZip = require('jszip');
+      const zip = new JSZip();
+      
+      // Group by year and month for better organization
+      const dateGroups = new Map<string, Array<{date: string, dateObj: Date, notes: Note[]}>>();
+      
+      // Process each date
+      for (const date of dates) {
+        const notes = await storage.getNotesByDate(date, userId);
+        
+        if (notes.length === 0) continue;
+        
+        const dateObj = new Date(date);
+        const year = dateObj.getFullYear();
+        const month = dateObj.toLocaleString('en-US', { month: 'long' });
+        
+        const key = `${year}/${month}`;
+        if (!dateGroups.has(key)) {
+          dateGroups.set(key, []);
+        }
+        
+        const groupData = dateGroups.get(key);
+        if (groupData) {
+          groupData.push({
+            date,
+            dateObj,
+            notes
+          });
+        }
+      }
+      
+      // Create folders and files inside the zip
+      for (const [folder, dateData] of Array.from(dateGroups.entries())) {
+        // Create a folder for each year/month
+        const folderRef = zip.folder(folder);
+        
+        // Add files for each date
+        for (const { date, dateObj, notes } of dateData) {
+          const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          // Create markdown content
+          let markdown = `# Daynotes: ${formattedDate}\n\n`;
+          
+          notes.forEach((note: Note) => {
+            const timestamp = new Date(note.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            markdown += `## ${timestamp}\n${note.content}\n\n`;
+          });
+          
+          // Add file to the folder
+          folderRef.file(`${date}.md`, markdown);
+        }
+      }
+      
+      // Generate the zip file
+      const zipBuffer = await zip.generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 9
+        }
+      });
+      
+      // Set response headers for downloading the zip file
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="daynotes-export.zip"`);
+      
+      // Send the zip file
+      res.send(zipBuffer);
+    } catch (error) {
+      console.error("Error exporting all notes:", error);
+      res.status(500).json({ message: "Failed to export all notes" });
     }
   });
 
