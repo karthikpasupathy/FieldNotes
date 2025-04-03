@@ -83,7 +83,7 @@ export default function NoteInput({ date }: NoteInputProps) {
   const getCharCountColor = () => {
     if (charCount > 260) return "text-red-500";
     if (charCount > 240) return "text-amber-500";
-    return "text-green-500";
+    return "text-blue-600";
   };
   
   return (
@@ -93,7 +93,7 @@ export default function NoteInput({ date }: NoteInputProps) {
           value={content}
           onChange={handleContentChange}
           placeholder="Add a new note (280 char max)..."
-          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-green-500 focus:border-transparent rounded-md border-green-200"
+          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md border-blue-200"
           rows={3}
           maxLength={MAX_CHARS}
           style={{
@@ -108,7 +108,7 @@ export default function NoteInput({ date }: NoteInputProps) {
         </div>
         <Button 
           type="submit" 
-          className="bg-green-600 hover:bg-green-700 text-white rounded-md px-5 py-2 transition-all duration-300"
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-5 py-2 transition-all duration-300"
           disabled={content.trim().length === 0 || createNoteMutation.isPending}
         >
           {createNoteMutation.isPending ? "Adding..." : "Add Note"}

@@ -251,7 +251,7 @@ export default function Home() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center space-x-1 text-black bg-white border-green-500 hover:bg-white hover:text-black"
+                  className="flex items-center space-x-1 text-black bg-white border-blue-500 hover:bg-white hover:text-black"
                   onClick={toggleCalendar}
                 >
                   <span>{formatDateForDisplay(currentDateObj)}</span>
@@ -274,7 +274,7 @@ export default function Home() {
                 size="sm"
                 onClick={analyzeNotes}
                 title="Analyze My Day"
-                className="hidden sm:flex text-black bg-white border-green-500 hover:bg-white hover:text-black"
+                className="hidden sm:flex text-black bg-white border-blue-500 hover:bg-white hover:text-black"
                 disabled={isAnalysisFetching || notes.length === 0}
               >
                 <BrainCircuit className="h-4 w-4 mr-1" />
@@ -289,7 +289,7 @@ export default function Home() {
                 size="sm"
                 onClick={exportNotesAsMarkdown}
                 title="Export as Markdown"
-                className="hidden sm:flex text-black bg-white border-green-500 hover:bg-white hover:text-black"
+                className="hidden sm:flex text-black bg-white border-blue-500 hover:bg-white hover:text-black"
               >
                 <Download className="h-4 w-4 mr-1" />
                 <span className="sr-only sm:not-sr-only">Export</span>
@@ -370,7 +370,7 @@ export default function Home() {
       {/* Mobile bottom navigation */}
       <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
         <div className="max-w-md mx-auto flex justify-between">
-          <button className="flex items-center py-3 px-4 text-green-600" title="Notes">
+          <button className="flex items-center py-3 px-4 text-blue-600" title="Notes">
             <List className="h-6 w-6" />
             <span className="sr-only">Notes</span>
           </button>
@@ -392,7 +392,7 @@ export default function Home() {
             <span className="sr-only">Daily</span>
           </button>
           <button 
-            className={`flex items-center py-3 px-4 ${isPeriodAnalysisOpen ? 'text-green-600' : 'text-gray-500'}`}
+            className={`flex items-center py-3 px-4 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
             onClick={togglePeriodAnalysis}
             title="Period Analysis"
           >
