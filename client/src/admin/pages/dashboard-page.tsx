@@ -4,14 +4,148 @@ import { getAdminQueryFn } from "@/admin/lib/admin-query-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Users, FileText, BarChart2, LogOut } from "lucide-react";
+import { 
+  Loader2, 
+  Users, 
+  FileText, 
+  LogOut, 
+  Mail,
+  User,
+  Calendar
+} from "lucide-react";
 import { useLocation } from "wouter";
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 
 interface AdminStats {
   totalUsers: number;
   activeUsers: number;
   totalNotes: number;
-  totalAnalyses: number;
+}
+
+interface UserDetails {
+  id: number;
+  username: string;
+  email: string;
+  name: string | null;
+}
+
+interface ActiveUserDetails extends UserDetails {
+  lastActive: string;
+}
+
+// UsersList component to display all users
+function UsersList() {
+  const { data: users, isLoading } = useQuery<UserDetails[]>({
+    queryKey: ["/api/admin-users"],
+    queryFn: getAdminQueryFn({ on401: "throw" }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
+  if (!users || users.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No users found.
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableCaption>List of all registered users</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Name</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.id}>
+            <TableCell className="font-medium flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.username}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.email}
+            </TableCell>
+            <TableCell>{user.name || '-'}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+// ActiveUsersList component to display active users
+function ActiveUsersList() {
+  const { data: activeUsers, isLoading } = useQuery<ActiveUserDetails[]>({
+    queryKey: ["/api/admin-active-users"],
+    queryFn: getAdminQueryFn({ on401: "throw" }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
+  if (!activeUsers || activeUsers.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No active users found in the last 30 days.
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableCaption>Users active in the last 30 days</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Last Active</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {activeUsers.map((user) => (
+          <TableRow key={user.id}>
+            <TableCell className="font-medium flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.username}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.email}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+              {new Date(user.lastActive).toLocaleString()}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }
 
 export default function AdminDashboardPage() {
@@ -46,7 +180,7 @@ export default function AdminDashboardPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Users</CardDescription>
@@ -76,69 +210,38 @@ export default function AdminDashboardPage() {
             </CardTitle>
           </CardHeader>
         </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Analyses</CardDescription>
-            <CardTitle className="text-3xl flex items-center">
-              <BarChart2 className="h-5 w-5 mr-2 text-primary" />
-              {stats?.totalAnalyses || 0}
-            </CardTitle>
-          </CardHeader>
-        </Card>
       </div>
       
       <Tabs defaultValue="users">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="analyses">Analyses</TabsTrigger>
+          <TabsTrigger value="users">All Users</TabsTrigger>
+          <TabsTrigger value="active">Active Users</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>User Statistics</CardTitle>
+              <CardTitle>All Users</CardTitle>
               <CardDescription>
-                Detailed information about user registration and activity.
+                Complete list of all registered users in the system.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="p-8 text-center text-muted-foreground">
-                Detailed statistics will be added in a future update.
-              </div>
+              <UsersList />
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="notes">
+        <TabsContent value="active">
           <Card>
             <CardHeader>
-              <CardTitle>Notes Statistics</CardTitle>
+              <CardTitle>Active Users</CardTitle>
               <CardDescription>
-                Detailed information about notes creation and trends.
+                Users who have been active in the last 30 days.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="p-8 text-center text-muted-foreground">
-                Detailed statistics will be added in a future update.
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="analyses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analyses Statistics</CardTitle>
-              <CardDescription>
-                Detailed information about AI analyses usage.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-8 text-center text-muted-foreground">
-                Detailed statistics will be added in a future update.
-              </div>
+              <ActiveUsersList />
             </CardContent>
           </Card>
         </TabsContent>

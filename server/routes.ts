@@ -543,26 +543,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total number of registered users
       const totalUsers = await storage.getTotalUsers();
       
-      // Get number of active users (logged in at least once in the last 14 days)
-      const twoWeeksAgo = new Date();
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const activeUsers = await storage.getActiveUsersSince(twoWeeksAgo);
+      // Get number of active users (logged in at least once in the last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const activeUsers = await storage.getActiveUsersSince(thirtyDaysAgo);
       
       // Get total number of notes
       const totalNotes = await storage.getTotalNotes();
       
-      // Get total number of analyses (daily + period)
-      const totalAnalyses = await storage.getTotalAnalyses();
-      
       res.json({
         totalUsers,
         activeUsers,
-        totalNotes,
-        totalAnalyses
+        totalNotes
       });
     } catch (error) {
       console.error("Error fetching admin statistics:", error);
       res.status(500).json({ message: "Failed to fetch admin statistics" });
+    }
+  });
+  
+  // Admin users list endpoint
+  app.get("/api/admin-users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Return only the necessary fields for security
+      const usersSanitized = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name
+      }));
+      
+      res.json(usersSanitized);
+    } catch (error) {
+      console.error("Error fetching admin user list:", error);
+      res.status(500).json({ message: "Failed to fetch user list" });
+    }
+  });
+  
+  // Admin active users endpoint
+  app.get("/api/admin-active-users", isAdmin, async (req, res) => {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const activeUsers = await storage.getActiveUsersWithDetails(thirtyDaysAgo);
+      
+      // Return only the necessary fields for security
+      const activeUsersSanitized = activeUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        lastActive: user.lastActive
+      }));
+      
+      res.json(activeUsersSanitized);
+    } catch (error) {
+      console.error("Error fetching admin active user list:", error);
+      res.status(500).json({ message: "Failed to fetch active user list" });
     }
   });
 

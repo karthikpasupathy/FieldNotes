@@ -44,6 +44,9 @@ export interface IStorage {
   getActiveUsersSince(date: Date): Promise<number>;
   getTotalNotes(): Promise<number>;
   getTotalAnalyses(): Promise<number>;
+  // Admin user management
+  getAllUsers(): Promise<User[]>;
+  getActiveUsersWithDetails(date: Date): Promise<Array<User & { lastActive: string }>>;
   sessionStore: session.Store;
 }
 
@@ -275,6 +278,20 @@ export class MemStorage implements IStorage {
       .length;
     
     return dailyAnalysesCount + this.periodAnalyses.size;
+  }
+  
+  // Admin user management methods
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
+  async getActiveUsersWithDetails(date: Date): Promise<Array<User & { lastActive: string }>> {
+    // For MemStorage, we just return all users with current date as lastActive
+    const now = new Date().toISOString();
+    return Array.from(this.users.values()).map(user => ({
+      ...user,
+      lastActive: now
+    }));
   }
 }
 
@@ -684,6 +701,44 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error getting total analyses count:', error);
       return 0;
+    }
+  }
+  
+  // Admin user management methods
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const result = await this.executeQuery(
+        'SELECT * FROM users ORDER BY username'
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
+  }
+  
+  async getActiveUsersWithDetails(date: Date): Promise<Array<User & { lastActive: string }>> {
+    try {
+      // Join users with their most recent note to get activity data
+      const result = await this.executeQuery(
+        `SELECT u.*, 
+          (SELECT MAX(timestamp) FROM notes WHERE user_id = u.id) as last_active
+         FROM users u
+         WHERE EXISTS (
+           SELECT 1 FROM notes 
+           WHERE user_id = u.id AND timestamp >= $1
+         )
+         ORDER BY last_active DESC`,
+        [date]
+      );
+      
+      return result.rows.map((row: any) => ({
+        ...row,
+        lastActive: row.last_active ? new Date(row.last_active).toISOString() : null
+      }));
+    } catch (error) {
+      console.error('Error getting active users with details:', error);
+      return [];
     }
   }
 }
