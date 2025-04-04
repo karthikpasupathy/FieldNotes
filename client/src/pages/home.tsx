@@ -332,15 +332,6 @@ export default function Home() {
                   </div>
                   <span>View All Moments</span>
                 </button>
-                <button 
-                  onClick={() => setLocation('/moments?analyze=true')}
-                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <div className="flex items-center justify-center bg-blue-100 rounded-md h-7 w-7 mr-2">
-                    <BrainCircuit className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <span>Analyze Moments</span>
-                </button>
                 <p className="mt-3 text-sm text-gray-600">
                   Collect and analyze your moments for insights and patterns.
                 </p>
