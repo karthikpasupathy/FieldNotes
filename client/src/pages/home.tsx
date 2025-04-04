@@ -322,18 +322,27 @@ export default function Home() {
               </div>
               
               <div className="bg-white rounded-lg shadow-sm p-4">
-                <h2 className="font-semibold text-gray-800 mb-3">Special Moments</h2>
+                <h2 className="font-semibold text-gray-800 mb-3">Moments</h2>
                 <button 
                   onClick={() => setLocation('/moments')}
-                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors mb-2"
                 >
                   <div className="flex items-center justify-center bg-yellow-400 rounded-md h-7 w-7 mr-2">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
                   <span>View All Moments</span>
                 </button>
+                <button 
+                  onClick={() => setLocation('/moments?analyze=true')}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <div className="flex items-center justify-center bg-blue-100 rounded-md h-7 w-7 mr-2">
+                    <BrainCircuit className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <span>Analyze Moments</span>
+                </button>
                 <p className="mt-3 text-sm text-gray-600">
-                  Collect and analyze your special moments for insights and patterns.
+                  Collect and analyze your moments for insights and patterns.
                 </p>
               </div>
             </div>

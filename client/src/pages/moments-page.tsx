@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Loader2, Sparkles, ArrowLeft, RefreshCw } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Loader2, Sparkles, ArrowLeft, RefreshCw, BrainCircuit } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,11 @@ import { Note } from "@shared/schema";
 export default function MomentsPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [location] = useLocation();
   const [selectedMomentId, setSelectedMomentId] = useState<number | null>(null);
+  
+  // Check for analyze parameter in URL
+  const shouldAnalyze = location.includes('analyze=true');
 
   // Fetch all moments
   const { 
@@ -38,6 +42,13 @@ export default function MomentsPage() {
     enabled: moments.length > 0,
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
+  
+  // Auto-trigger analysis if URL has analyze parameter
+  useEffect(() => {
+    if (shouldAnalyze && moments.length > 0 && !momentsAnalysis?.analysis && !analysisLoading) {
+      handleRegenerateAnalysis();
+    }
+  }, [shouldAnalyze, moments.length, momentsAnalysis?.analysis]);
 
   // Toggle moment status mutation
   const toggleMomentMutation = useMutation({
@@ -107,7 +118,7 @@ export default function MomentsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2">Loading your special moments...</p>
+        <p className="mt-2">Loading your moments...</p>
       </div>
     );
   }
@@ -139,9 +150,23 @@ export default function MomentsPage() {
             <div className="flex items-center justify-center h-6 w-6 mr-2 bg-yellow-400 text-white rounded-sm">
               <Sparkles className="h-4 w-4" />
             </div>
-            Special Moments
+            Moments
           </h1>
         </div>
+        {moments.length > 0 && (
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerateAnalysis}
+            disabled={analysisLoading}
+            className="flex items-center"
+          >
+            <div className="flex items-center justify-center h-4 w-4 mr-2">
+              <BrainCircuit className="h-3.5 w-3.5 text-blue-600" />
+            </div>
+            <span>Analyze Moments</span>
+          </Button>
+        )}
       </div>
 
       {moments.length === 0 ? (
@@ -149,9 +174,9 @@ export default function MomentsPage() {
           <div className="flex items-center justify-center h-12 w-12 mb-4 bg-yellow-400 text-white rounded-sm">
             <Sparkles className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No special moments yet</h2>
+          <h2 className="text-xl font-semibold mb-2">No moments yet</h2>
           <p className="text-center mb-4">
-            Mark your most meaningful notes as moments by clicking the star icon.
+            Mark your most meaningful notes as moments by clicking the moment icon.
           </p>
           <Button asChild>
             <Link href="/">Go to Notes</Link>
@@ -166,7 +191,7 @@ export default function MomentsPage() {
                   <div className="flex items-center justify-center h-5 w-5 mr-2 bg-yellow-400 text-white rounded-sm">
                     <Sparkles className="h-3.5 w-3.5" />
                   </div>
-                  Your Special Moments
+                  Your Moments
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -236,7 +261,7 @@ export default function MomentsPage() {
                   {analysisLoading ? (
                     <div className="flex flex-col items-center justify-center p-6">
                       <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-                      <p className="text-sm text-center">Analyzing your special moments...</p>
+                      <p className="text-sm text-center">Analyzing your moments...</p>
                     </div>
                   ) : analysisError ? (
                     <div className="p-4 text-center">
@@ -263,8 +288,8 @@ export default function MomentsPage() {
                   ) : (
                     <p className="text-center text-muted-foreground p-4">
                       {moments.length > 0 
-                        ? "Click the refresh button to generate an analysis of your special moments."
-                        : "Mark some notes as special moments to see an analysis here."}
+                        ? "Click the refresh button to generate an analysis of your moments."
+                        : "Mark some notes as moments to see an analysis here."}
                     </p>
                   )}
                 </ScrollArea>
