@@ -144,33 +144,62 @@ export default function MomentsPage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center">
-          <Button variant="ghost" size="sm" asChild className="mr-2">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold flex items-center">
-            <div className="flex items-center justify-center h-6 w-6 mr-2 bg-yellow-400 text-white rounded-sm">
-              <Sparkles className="h-4 w-4" />
+        {isMobile ? (
+          <>
+            <Button variant="ghost" size="sm" asChild className="p-0 mr-2">
+              <Link href="/">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <h1 className="text-xl font-bold flex items-center grow">
+              <div className="flex items-center justify-center h-5 w-5 mr-2 bg-yellow-400 text-white rounded-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+              Moments
+            </h1>
+            {moments.length > 0 && (
+              <Button 
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateAnalysis}
+                disabled={analysisLoading}
+                className="p-1 ml-2"
+              >
+                <BrainCircuit className="h-5 w-5 text-blue-600" />
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center">
+              <Button variant="ghost" size="sm" asChild className="mr-2">
+                <Link href="/">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Link>
+              </Button>
+              <h1 className="text-2xl font-bold flex items-center">
+                <div className="flex items-center justify-center h-6 w-6 mr-2 bg-yellow-400 text-white rounded-sm">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                Moments
+              </h1>
             </div>
-            Moments
-          </h1>
-        </div>
-        {moments.length > 0 && (
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleRegenerateAnalysis}
-            disabled={analysisLoading}
-            className="flex items-center"
-          >
-            <div className="flex items-center justify-center h-4 w-4 mr-2">
-              <BrainCircuit className="h-3.5 w-3.5 text-blue-600" />
-            </div>
-            <span>Analyze Moments</span>
-          </Button>
+            {moments.length > 0 && (
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerateAnalysis}
+                disabled={analysisLoading}
+                className="flex items-center"
+              >
+                <div className="flex items-center justify-center h-4 w-4 mr-2">
+                  <BrainCircuit className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+                <span>Analyze Moments</span>
+              </Button>
+            )}
+          </>
         )}
       </div>
 
@@ -187,7 +216,110 @@ export default function MomentsPage() {
             <Link href="/">Go to Notes</Link>
           </Button>
         </div>
+      ) : isMobile ? (
+        // Mobile layout - Analysis at the top, collapsible
+        <div className="space-y-4">
+          {/* Analysis Card - Mobile */}
+          <Card className={selectedMomentId ? "hidden" : ""}>
+            <CardHeader className="py-3 px-4">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="analysis" className="border-none">
+                  <AccordionTrigger className="py-0 hover:no-underline">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center">
+                        <BrainCircuit className="h-4 w-4 mr-2 text-blue-600" />
+                        Moments Analysis
+                      </span>
+                    </CardTitle>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {analysisLoading ? (
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary mb-2" />
+                        <p className="text-sm text-center">Analyzing your moments...</p>
+                      </div>
+                    ) : analysisError ? (
+                      <div className="py-2 text-center">
+                        <p className="text-destructive text-sm mb-2">Failed to analyze moments</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleRegenerateAnalysis}
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : momentsAnalysis?.analysis ? (
+                      <div className="text-sm prose prose-sm max-w-none dark:prose-invert mt-2">
+                        <ReactMarkdown>{momentsAnalysis.analysis}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-3 text-sm">
+                        Click the analyze button to generate insights from your moments.
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardHeader>
+          </Card>
+
+          {/* Moments List - Mobile */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base flex items-center">
+                <div className="flex items-center justify-center h-4 w-4 mr-2 bg-yellow-400 text-white rounded-sm">
+                  <Sparkles className="h-3 w-3" />
+                </div>
+                Your Moments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 py-2">
+              {sortedDates.map(date => (
+                <div key={date} className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2 pb-1 border-b border-muted">
+                    {formatDateForDisplay(new Date(date))}
+                  </h3>
+                  {momentsByDate[date].map(moment => (
+                    <div 
+                      key={moment.id} 
+                      className={`mb-3 p-3 rounded-lg border ${
+                        selectedMomentId === moment.id ? 'border-yellow-400 bg-yellow-50' : 'border-border'
+                      } hover:border-yellow-300 transition-colors cursor-pointer`}
+                      onClick={() => handleMomentClick(moment.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(moment.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMomentMutation.mutate(moment.id);
+                          }}
+                          className="h-7 w-7 p-0"
+                          title="Remove from moments"
+                        >
+                          <div className="flex items-center justify-center h-4 w-4 bg-yellow-400 text-white rounded-sm">
+                            <Sparkles className="h-3 w-3" />
+                          </div>
+                        </Button>
+                      </div>
+                      <p className="mt-1 text-sm whitespace-pre-wrap">{moment.content}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       ) : (
+        // Desktop layout - Side-by-side
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <Card>
@@ -210,8 +342,8 @@ export default function MomentsPage() {
                         <div 
                           key={moment.id} 
                           className={`mb-4 p-4 rounded-lg border ${
-                            selectedMomentId === moment.id ? 'border-primary' : 'border-border'
-                          } hover:border-primary transition-colors cursor-pointer`}
+                            selectedMomentId === moment.id ? 'border-yellow-400 bg-yellow-50' : 'border-border'
+                          } hover:border-yellow-300 transition-colors cursor-pointer`}
                           onClick={() => handleMomentClick(moment.id)}
                         >
                           <div className="flex justify-between items-start">
@@ -246,7 +378,7 @@ export default function MomentsPage() {
             </Card>
           </div>
 
-          <div className={isMobile && selectedMomentId ? "hidden" : ""}>
+          <div>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

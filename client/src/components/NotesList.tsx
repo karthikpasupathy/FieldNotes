@@ -161,7 +161,7 @@ export default function NotesList({
               <div 
                 key={note.id} 
                 className={`note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border ${
-                  note.isMoment ? 'border-yellow-200 bg-yellow-50/30' : 'border-blue-50'
+                  note.isMoment ? 'border-yellow-300 bg-yellow-100' : 'border-blue-50'
                 }`}
               >
                 <div className="flex justify-between">
@@ -172,7 +172,7 @@ export default function NotesList({
                         {formatNoteTime(note.timestamp)}
                       </p>
                       {note.isMoment && (
-                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center">
+                        <span className="ml-2 text-xs bg-yellow-300 text-yellow-800 px-2 py-0.5 rounded-full flex items-center font-semibold">
                           <Sparkles className="h-3 w-3 mr-1" />
                           Special Moment
                         </span>
