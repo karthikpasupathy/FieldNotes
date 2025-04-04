@@ -136,7 +136,9 @@ export default function MomentsPage() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold flex items-center">
-            <Sparkles className="h-6 w-6 mr-2 text-yellow-400" />
+            <div className="flex items-center justify-center h-6 w-6 mr-2 bg-yellow-400 text-white rounded-sm">
+              <Sparkles className="h-4 w-4" />
+            </div>
             Special Moments
           </h1>
         </div>
@@ -144,7 +146,9 @@ export default function MomentsPage() {
 
       {moments.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-muted/20">
-          <Sparkles className="h-12 w-12 mb-4 text-yellow-400" />
+          <div className="flex items-center justify-center h-12 w-12 mb-4 bg-yellow-400 text-white rounded-sm">
+            <Sparkles className="h-8 w-8" />
+          </div>
           <h2 className="text-xl font-semibold mb-2">No special moments yet</h2>
           <p className="text-center mb-4">
             Mark your most meaningful notes as moments by clicking the star icon.
@@ -159,7 +163,9 @@ export default function MomentsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-yellow-400" />
+                  <div className="flex items-center justify-center h-5 w-5 mr-2 bg-yellow-400 text-white rounded-sm">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
                   Your Special Moments
                 </CardTitle>
               </CardHeader>
@@ -195,7 +201,9 @@ export default function MomentsPage() {
                               className="h-8 w-8 p-0"
                               title="Remove from moments"
                             >
-                              <Sparkles className="h-4 w-4 text-yellow-400" />
+                              <div className="flex items-center justify-center h-4 w-4 bg-yellow-400 text-white rounded-sm">
+                                <Sparkles className="h-3 w-3" />
+                              </div>
                             </Button>
                           </div>
                           <p className="mt-2 whitespace-pre-wrap">{moment.content}</p>

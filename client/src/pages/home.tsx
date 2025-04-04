@@ -322,25 +322,19 @@ export default function Home() {
               </div>
               
               <div className="bg-white rounded-lg shadow-sm p-4">
-                <h2 className="font-semibold text-gray-800 mb-2">Recent Days</h2>
-                <RecentDays 
-                  days={recentDays} 
-                  currentDate={currentDate} 
-                  onSelectDate={(date) => setLocation(`/day/${date}`)} 
-                />
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
-                <h2 className="font-semibold text-gray-800 mb-3">Special Features</h2>
+                <h2 className="font-semibold text-gray-800 mb-3">Special Moments</h2>
                 <button 
                   onClick={() => setLocation('/moments')}
                   className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <div className="flex items-center justify-center bg-yellow-100 rounded-full h-7 w-7 mr-2">
-                    <Sparkles className="h-4 w-4 text-yellow-600" />
+                  <div className="flex items-center justify-center bg-yellow-400 rounded-md h-7 w-7 mr-2">
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <span>View Special Moments</span>
+                  <span>View All Moments</span>
                 </button>
+                <p className="mt-3 text-sm text-gray-600">
+                  Collect and analyze your special moments for insights and patterns.
+                </p>
               </div>
             </div>
               
@@ -397,11 +391,13 @@ export default function Home() {
             <span className="sr-only">Calendar</span>
           </button>
           <button 
-            className="flex items-center py-3 px-2 text-gray-500"
+            className="flex items-center py-3 px-2 text-yellow-500"
             onClick={() => setLocation('/moments')}
             title="Moments"
           >
-            <Sparkles className="h-5 w-5" />
+            <div className="flex items-center justify-center h-5 w-5 bg-yellow-400 text-white rounded-sm">
+              <Sparkles className="h-4 w-4" />
+            </div>
             <span className="sr-only">Moments</span>
           </button>
           <button 

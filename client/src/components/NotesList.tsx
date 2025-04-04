@@ -79,14 +79,19 @@ export default function NotesList({
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Refresh the notes list and moments
       queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
       
+      // Check if the moment was added or removed
+      const isNowMoment = data.message.includes("added");
+      
       toast({
-        title: "Moment Updated",
-        description: "Your note has been marked as a special moment.",
+        title: isNowMoment ? "Moment Added" : "Moment Removed",
+        description: isNowMoment 
+          ? "Your note has been marked as a special moment." 
+          : "Your note is no longer marked as a special moment.",
       });
     },
     onError: (error: Error) => {
@@ -187,7 +192,13 @@ export default function NotesList({
                       disabled={toggleMomentMutation.isPending}
                       title={note.isMoment ? "Remove from moments" : "Mark as special moment"}
                     >
-                      <Sparkles className="h-4 w-4" />
+                      {note.isMoment ? (
+                        <div className="flex items-center justify-center h-4 w-4 bg-yellow-400 text-white rounded-sm">
+                          <Sparkles className="h-3 w-3" />
+                        </div>
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
