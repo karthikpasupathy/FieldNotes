@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ export const notes = pgTable("notes", {
   date: text("date").notNull(), // Format: YYYY-MM-DD for easy querying by date
   userId: integer("user_id").notNull(),
   analysis: text("analysis"),
+  isMoment: boolean("is_moment").default(false), // Flag to mark special "moment" entries
 });
 
 export const periodAnalyses = pgTable("period_analyses", {
@@ -42,6 +43,7 @@ export const insertNoteSchema = createInsertSchema(notes).pick({
   content: true,
   date: true,
   userId: true,
+  isMoment: true,
 });
 
 export const noteContentSchema = z.object({

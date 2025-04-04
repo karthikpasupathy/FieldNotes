@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parse, addDays, subDays } from "date-fns";
 import { 
@@ -11,7 +11,8 @@ import {
   Download, 
   User as UserIcon,
   BrainCircuit,
-  CalendarRange
+  CalendarRange,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -328,6 +329,19 @@ export default function Home() {
                   onSelectDate={(date) => setLocation(`/day/${date}`)} 
                 />
               </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
+                <h2 className="font-semibold text-gray-800 mb-3">Special Features</h2>
+                <button 
+                  onClick={() => setLocation('/moments')}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <div className="flex items-center justify-center bg-yellow-100 rounded-full h-7 w-7 mr-2">
+                    <Sparkles className="h-4 w-4 text-yellow-600" />
+                  </div>
+                  <span>View Special Moments</span>
+                </button>
+              </div>
             </div>
               
             {/* Main content area */}
@@ -370,42 +384,42 @@ export default function Home() {
       {/* Mobile bottom navigation */}
       <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
         <div className="max-w-md mx-auto flex justify-between">
-          <button className="flex items-center py-3 px-4 text-blue-600" title="Notes">
-            <List className="h-6 w-6" />
+          <button className="flex items-center py-3 px-2 text-blue-600" title="Notes">
+            <List className="h-5 w-5" />
             <span className="sr-only">Notes</span>
           </button>
           <button 
-            className="flex items-center py-3 px-4 text-gray-500"
+            className="flex items-center py-3 px-2 text-gray-500"
             onClick={toggleCalendar}
             title="Calendar"
           >
-            <CalendarIcon className="h-6 w-6" />
+            <CalendarIcon className="h-5 w-5" />
             <span className="sr-only">Calendar</span>
           </button>
           <button 
-            className="flex items-center py-3 px-4 text-gray-500"
+            className="flex items-center py-3 px-2 text-gray-500"
+            onClick={() => setLocation('/moments')}
+            title="Moments"
+          >
+            <Sparkles className="h-5 w-5" />
+            <span className="sr-only">Moments</span>
+          </button>
+          <button 
+            className="flex items-center py-3 px-2 text-gray-500"
             onClick={analyzeNotes}
             disabled={isAnalysisFetching || notes.length === 0}
             title="Daily Analysis"
           >
-            <BrainCircuit className="h-6 w-6" />
+            <BrainCircuit className="h-5 w-5" />
             <span className="sr-only">Daily</span>
           </button>
           <button 
-            className={`flex items-center py-3 px-4 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
+            className={`flex items-center py-3 px-2 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
             onClick={togglePeriodAnalysis}
             title="Period Analysis"
           >
-            <CalendarRange className="h-6 w-6" />
+            <CalendarRange className="h-5 w-5" />
             <span className="sr-only">Period</span>
-          </button>
-          <button 
-            className="flex items-center py-3 px-4 text-gray-500"
-            onClick={() => setLocation('/profile')}
-            title="Profile"
-          >
-            <UserIcon className="h-6 w-6" />
-            <span className="sr-only">Profile</span>
           </button>
         </div>
       </nav>

@@ -1,0 +1,270 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Loader2, Sparkles, ArrowLeft, RefreshCw } from "lucide-react";
+import { formatDateForDisplay } from "@/lib/date-utils";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { queryClient } from "@/lib/queryClient";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Note } from "@shared/schema";
+
+export default function MomentsPage() {
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [selectedMomentId, setSelectedMomentId] = useState<number | null>(null);
+
+  // Fetch all moments
+  const { 
+    data: moments = [] as Note[],
+    isLoading: momentsLoading,
+    error: momentsError 
+  } = useQuery<Note[]>({
+    queryKey: ["/api/moments"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch moments analysis
+  const {
+    data: momentsAnalysis = { analysis: "" },
+    isLoading: analysisLoading,
+    error: analysisError,
+    refetch: refetchAnalysis
+  } = useQuery<{ analysis: string }>({
+    queryKey: ["/api/analyze-moments"],
+    enabled: moments.length > 0,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  // Toggle moment status mutation
+  const toggleMomentMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      const response = await fetch(`/api/moments/${noteId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to toggle moment status");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate moments cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/moments"] });
+      toast({
+        title: "Success",
+        description: "Moment status updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Group moments by date
+  type MomentsByDateType = { [date: string]: Note[] };
+  const momentsByDate = moments.reduce<MomentsByDateType>((acc, moment) => {
+    if (!acc[moment.date]) {
+      acc[moment.date] = [];
+    }
+    acc[moment.date].push(moment);
+    return acc;
+  }, {});
+
+  // Sort dates in reverse chronological order
+  const sortedDates = Object.keys(momentsByDate).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  );
+
+  const handleRegenerateAnalysis = () => {
+    refetchAnalysis();
+    toast({
+      title: "Regenerating analysis",
+      description: "Please wait while we analyze your moments",
+    });
+  };
+
+  // Handle moment selection for mobile view
+  const handleMomentClick = (momentId: number) => {
+    if (isMobile) {
+      setSelectedMomentId(selectedMomentId === momentId ? null : momentId);
+    }
+  };
+
+  if (momentsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2">Loading your special moments...</p>
+      </div>
+    );
+  }
+
+  if (momentsError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <p className="text-destructive text-lg font-semibold">
+          Error loading moments: {momentsError.message}
+        </p>
+        <Button asChild className="mt-4">
+          <Link href="/">Go Back</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center">
+          <Button variant="ghost" size="sm" asChild className="mr-2">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold flex items-center">
+            <Sparkles className="h-6 w-6 mr-2 text-yellow-400" />
+            Special Moments
+          </h1>
+        </div>
+      </div>
+
+      {moments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-muted/20">
+          <Sparkles className="h-12 w-12 mb-4 text-yellow-400" />
+          <h2 className="text-xl font-semibold mb-2">No special moments yet</h2>
+          <p className="text-center mb-4">
+            Mark your most meaningful notes as moments by clicking the star icon.
+          </p>
+          <Button asChild>
+            <Link href="/">Go to Notes</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-yellow-400" />
+                  Your Special Moments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-240px)]">
+                  {sortedDates.map(date => (
+                    <div key={date} className="mb-6">
+                      <h3 className="text-md font-semibold mb-2 pb-1 border-b border-muted">
+                        {formatDateForDisplay(new Date(date))}
+                      </h3>
+                      {momentsByDate[date].map(moment => (
+                        <div 
+                          key={moment.id} 
+                          className={`mb-4 p-4 rounded-lg border ${
+                            selectedMomentId === moment.id ? 'border-primary' : 'border-border'
+                          } hover:border-primary transition-colors cursor-pointer`}
+                          onClick={() => handleMomentClick(moment.id)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(moment.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleMomentMutation.mutate(moment.id);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="Remove from moments"
+                            >
+                              <Sparkles className="h-4 w-4 text-yellow-400" />
+                            </Button>
+                          </div>
+                          <p className="mt-2 whitespace-pre-wrap">{moment.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className={isMobile && selectedMomentId ? "hidden" : ""}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Moments Analysis</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleRegenerateAnalysis}
+                    disabled={analysisLoading || moments.length === 0}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${analysisLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-240px)]">
+                  {analysisLoading ? (
+                    <div className="flex flex-col items-center justify-center p-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+                      <p className="text-sm text-center">Analyzing your special moments...</p>
+                    </div>
+                  ) : analysisError ? (
+                    <div className="p-4 text-center">
+                      <p className="text-destructive mb-2">Failed to analyze moments</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRegenerateAnalysis}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : momentsAnalysis?.analysis ? (
+                    <Accordion type="single" collapsible defaultValue="analysis" className="w-full">
+                      <AccordionItem value="analysis">
+                        <AccordionTrigger className="font-semibold">Patterns & Insights</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="whitespace-pre-wrap text-sm">
+                            {momentsAnalysis.analysis}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ) : (
+                    <p className="text-center text-muted-foreground p-4">
+                      {moments.length > 0 
+                        ? "Click the refresh button to generate an analysis of your special moments."
+                        : "Mark some notes as special moments to see an analysis here."}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
+import { pool } from "./db";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -40,6 +41,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   
   // No longer resetting storage at startup so user data persists
+  
+  // Attempt to alter the notes table to add is_moment column if it doesn't exist
+  try {
+    await pool.query(`
+      ALTER TABLE notes 
+      ADD COLUMN IF NOT EXISTS is_moment BOOLEAN DEFAULT FALSE
+    `);
+    console.log("Database schema updated to support Moments feature");
+  } catch (error) {
+    console.error("Error updating database schema for Moments:", error);
+  }
   
   // Password reset request endpoint
   app.post("/api/reset-password-request", async (req, res) => {
@@ -603,6 +615,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin active user list:", error);
       res.status(500).json({ message: "Failed to fetch active user list" });
+    }
+  });
+
+  // Moments feature API endpoints
+  app.post("/api/moments/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId, 10);
+      
+      if (isNaN(noteId)) {
+        return res.status(400).json({ message: "Invalid note ID" });
+      }
+      
+      const userId = req.user!.id;
+      const success = await storage.toggleMoment(noteId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Note not found or you don't have permission to update it" });
+      }
+      
+      res.status(200).json({ message: "Moment status toggled successfully" });
+    } catch (error) {
+      console.error("Error toggling moment status:", error);
+      res.status(500).json({ message: "Failed to toggle moment status" });
+    }
+  });
+  
+  app.get("/api/moments", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const moments = await storage.getMoments(userId);
+      res.json(moments);
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+      res.status(500).json({ message: "Failed to fetch moments" });
+    }
+  });
+  
+  app.get("/api/analyze-moments", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const moments = await storage.getMoments(userId);
+      
+      if (moments.length === 0) {
+        return res.status(404).json({ message: "No moments found to analyze" });
+      }
+      
+      const analysis = await storage.analyzeMoments(userId);
+      res.json({ analysis });
+    } catch (error) {
+      console.error("Error analyzing moments:", error);
+      res.status(500).json({ message: "Failed to analyze moments" });
     }
   });
 

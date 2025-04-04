@@ -2,12 +2,13 @@ import { format } from "date-fns";
 import { type Note } from "@shared/schema";
 import NoteInput from "./NoteInput";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2, RefreshCw } from "lucide-react";
+import { Trash2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { Link } from "wouter";
 
 interface NotesListProps {
   notes: Note[];
@@ -45,6 +46,7 @@ export default function NotesList({
       // Refresh the notes list
       queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/recent-days'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
       
       toast({
         title: "Note Deleted",
@@ -55,6 +57,42 @@ export default function NotesList({
       toast({
         title: "Error",
         description: `Failed to delete note: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Toggle moment status mutation
+  const toggleMomentMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      const response = await fetch(`/api/moments/${noteId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to toggle moment status");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh the notes list and moments
+      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
+      
+      toast({
+        title: "Moment Updated",
+        description: "Your note has been marked as a special moment.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -115,24 +153,53 @@ export default function NotesList({
           ) : notes.length > 0 ? (
             // Actual Notes
             notes.map((note) => (
-              <div key={note.id} className="note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border border-blue-50">
+              <div 
+                key={note.id} 
+                className={`note-card rounded-lg shadow-md p-4 transition-all duration-300 hover:shadow-lg border ${
+                  note.isMoment ? 'border-yellow-200 bg-yellow-50/30' : 'border-blue-50'
+                }`}
+              >
                 <div className="flex justify-between">
                   <div className="flex-1">
                     <p className="text-gray-800 mb-2">{note.content}</p>
-                    <p className="text-sm text-blue-600 font-medium">
-                      {formatNoteTime(note.timestamp)}
-                    </p>
+                    <div className="flex items-center">
+                      <p className="text-sm text-blue-600 font-medium">
+                        {formatNoteTime(note.timestamp)}
+                      </p>
+                      {note.isMoment && (
+                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Special Moment
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 h-8 w-8 -mt-1 -mr-2 rounded-full"
-                    onClick={() => deleteNoteMutation.mutate(note.id)}
-                    disabled={deleteNoteMutation.isPending}
-                    title="Delete note"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`transition-all duration-200 h-8 w-8 -mt-1 rounded-full ${
+                        note.isMoment 
+                          ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50' 
+                          : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
+                      }`}
+                      onClick={() => toggleMomentMutation.mutate(note.id)}
+                      disabled={toggleMomentMutation.isPending}
+                      title={note.isMoment ? "Remove from moments" : "Mark as special moment"}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 h-8 w-8 -mt-1 rounded-full"
+                      onClick={() => deleteNoteMutation.mutate(note.id)}
+                      disabled={deleteNoteMutation.isPending}
+                      title="Delete note"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))

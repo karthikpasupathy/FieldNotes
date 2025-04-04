@@ -39,6 +39,10 @@ export interface IStorage {
   getAnalysis(date: string, userId: number): Promise<string | null>;
   savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
   getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
+  // Moments related methods
+  toggleMoment(noteId: number, userId: number): Promise<boolean>;
+  getMoments(userId: number): Promise<Note[]>;
+  analyzeMoments(userId: number): Promise<string>;
   // Admin statistics methods
   getTotalUsers(): Promise<number>;
   getActiveUsersSince(date: Date): Promise<number>;
@@ -158,7 +162,8 @@ export class MemStorage implements IStorage {
       ...insertNote, 
       id, 
       timestamp: new Date(),
-      analysis: null
+      analysis: null,
+      isMoment: insertNote.isMoment || false
     };
     this.notes.set(id, note);
     return note;
@@ -292,6 +297,33 @@ export class MemStorage implements IStorage {
       ...user,
       lastActive: now
     }));
+  }
+
+  // Moments related methods
+  async toggleMoment(noteId: number, userId: number): Promise<boolean> {
+    const note = this.notes.get(noteId);
+    if (note && note.userId === userId) {
+      // Toggle the moment flag
+      note.isMoment = !note.isMoment;
+      this.notes.set(noteId, note);
+      return true;
+    }
+    return false;
+  }
+
+  async getMoments(userId: number): Promise<Note[]> {
+    return Array.from(this.notes.values())
+      .filter(note => note.userId === userId && note.isMoment === true)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  async analyzeMoments(userId: number): Promise<string> {
+    // This method would normally call OpenAI, but for MemStorage, we'll return a placeholder
+    const moments = await this.getMoments(userId);
+    if (moments.length === 0) {
+      return "No moments found to analyze.";
+    }
+    return `Analysis of ${moments.length} special moments. Add OpenAI integration for real analysis.`;
   }
 }
 
@@ -453,10 +485,10 @@ export class PostgresStorage implements IStorage {
 
   async createNote(note: InsertNote): Promise<Note> {
     try {
-      const { content, date, userId } = note;
+      const { content, date, userId, isMoment } = note;
       const result = await this.executeQuery(
-        'INSERT INTO notes (content, date, user_id, timestamp, analysis) VALUES ($1, $2, $3, NOW(), NULL) RETURNING *',
-        [content, date, userId]
+        'INSERT INTO notes (content, date, user_id, timestamp, analysis, is_moment) VALUES ($1, $2, $3, NOW(), NULL, $4) RETURNING *',
+        [content, date, userId, isMoment || false]
       );
       return result.rows[0];
     } catch (error) {
@@ -739,6 +771,69 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error getting active users with details:', error);
       return [];
+    }
+  }
+
+  // Moments related methods
+  async toggleMoment(noteId: number, userId: number): Promise<boolean> {
+    try {
+      // First check if the note exists and belongs to the user
+      const checkResult = await this.executeQuery(
+        'SELECT is_moment FROM notes WHERE id = $1 AND user_id = $2',
+        [noteId, userId]
+      );
+      
+      if (checkResult.rows.length === 0) {
+        return false;
+      }
+      
+      // Toggle the is_moment value
+      const currentValue = checkResult.rows[0].is_moment || false;
+      
+      await this.executeQuery(
+        'UPDATE notes SET is_moment = $1 WHERE id = $2 AND user_id = $3',
+        [!currentValue, noteId, userId]
+      );
+      
+      return true;
+    } catch (error) {
+      console.error(`Error toggling moment for note ${noteId}:`, error);
+      return false;
+    }
+  }
+
+  async getMoments(userId: number): Promise<Note[]> {
+    try {
+      const result = await this.executeQuery(
+        'SELECT * FROM notes WHERE user_id = $1 AND is_moment = true ORDER BY timestamp DESC',
+        [userId]
+      );
+      
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting moments for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async analyzeMoments(userId: number): Promise<string> {
+    try {
+      const moments = await this.getMoments(userId);
+      
+      if (moments.length === 0) {
+        return "No moments found to analyze.";
+      }
+      
+      // Here you would integrate with the OpenAI service to generate an analysis
+      // For now we'll return a placeholder message
+      return `Analysis of ${moments.length} special moments that you've marked as important.`;
+      
+      // TODO: Integrate with OpenAI for real analysis
+      // const momentsText = moments.map(m => m.content).join('\n\n');
+      // return analyzeNotes(moments);
+    } catch (error) {
+      console.error(`Error analyzing moments for user ${userId}:`, error);
+      return "An error occurred while analyzing your moments.";
     }
   }
 }
