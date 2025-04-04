@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { queryClient } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Note } from "@shared/schema";
+import ReactMarkdown from "react-markdown";
 
 export default function MomentsPage() {
   const { toast } = useToast();
@@ -283,8 +284,8 @@ export default function MomentsPage() {
                       <AccordionItem value="analysis">
                         <AccordionTrigger className="font-semibold">Patterns & Insights</AccordionTrigger>
                         <AccordionContent>
-                          <div className="whitespace-pre-wrap text-sm">
-                            {momentsAnalysis.analysis}
+                          <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown>{momentsAnalysis.analysis}</ReactMarkdown>
                           </div>
                         </AccordionContent>
                       </AccordionItem>

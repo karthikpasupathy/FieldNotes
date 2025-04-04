@@ -120,3 +120,61 @@ export async function analyzePeriodNotes(
     return `An error occurred while analyzing your ${periodType}. Please try again later.`;
   }
 }
+
+/**
+ * Analyzes a collection of moments (specially marked notes)
+ * @param moments An array of notes that have been marked as moments
+ * @returns An analysis of patterns and insights across these special moments
+ */
+export async function analyzeMoments(moments: Note[]): Promise<string> {
+  if (!moments.length) {
+    return "No moments to analyze yet. Mark some notes as moments to get insights.";
+  }
+
+  try {
+    // Group moments by date for better organization
+    const momentsByDate = moments.reduce((acc, moment) => {
+      if (!acc[moment.date]) {
+        acc[moment.date] = [];
+      }
+      acc[moment.date].push(moment);
+      return acc;
+    }, {} as Record<string, Note[]>);
+
+    // Format moments for the prompt
+    const formattedMoments = Object.entries(momentsByDate)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, dayMoments]) => {
+        const dayMomentsText = dayMoments
+          .map(moment => `  - ${moment.content}`)
+          .join("\n");
+        return `${date}:\n${dayMomentsText}`;
+      })
+      .join("\n\n");
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // Using the most capable model for analyzing special moments
+      messages: [
+        {
+          role: "system",
+          content: 
+            "You are an insightful journaling assistant that analyzes specially marked 'moments' - entries that were particularly meaningful to the user. " +
+            "Moments can span across different days and contexts. Your job is to identify patterns, recurring themes, and provide an analysis of what matters most to this person. " +
+            "Look for connections between moments, common emotional threads, values, and priorities revealed by these special entries. " +
+            "Be thoughtful, empathetic, and provide a deeper understanding of what the user finds most significant in their life."
+        },
+        {
+          role: "user",
+          content: `Here are my specially marked moments:\n\n${formattedMoments}\n\nPlease analyze these moments and provide insights about what matters most to me, the patterns across these special entries, and what they reveal about my values and priorities. Structure your response into clear sections and make it easy to read.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    return response.choices[0]?.message?.content || "Unable to generate analysis of your moments.";
+  } catch (error) {
+    console.error("Error analyzing moments with OpenAI:", error);
+    return "An error occurred while analyzing your moments. Please try again later.";
+  }
+}

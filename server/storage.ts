@@ -318,12 +318,15 @@ export class MemStorage implements IStorage {
   }
 
   async analyzeMoments(userId: number): Promise<string> {
-    // This method would normally call OpenAI, but for MemStorage, we'll return a placeholder
+    // Get the moments for this user
     const moments = await this.getMoments(userId);
     if (moments.length === 0) {
       return "No moments found to analyze.";
     }
-    return `Analysis of ${moments.length} special moments. Add OpenAI integration for real analysis.`;
+    
+    // Use the OpenAI integration
+    const { analyzeMoments } = await import("./openai");
+    return await analyzeMoments(moments);
   }
 }
 
@@ -825,13 +828,9 @@ export class PostgresStorage implements IStorage {
         return "No moments found to analyze.";
       }
       
-      // Here you would integrate with the OpenAI service to generate an analysis
-      // For now we'll return a placeholder message
-      return `Analysis of ${moments.length} special moments that you've marked as important.`;
-      
-      // TODO: Integrate with OpenAI for real analysis
-      // const momentsText = moments.map(m => m.content).join('\n\n');
-      // return analyzeNotes(moments);
+      // Use the OpenAI integration
+      const { analyzeMoments } = await import("./openai");
+      return await analyzeMoments(moments);
     } catch (error) {
       console.error(`Error analyzing moments for user ${userId}:`, error);
       return "An error occurred while analyzing your moments.";
