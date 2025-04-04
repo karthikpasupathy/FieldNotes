@@ -628,13 +628,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = req.user!.id;
-      const success = await storage.toggleMoment(noteId, userId);
+      const result = await storage.toggleMoment(noteId, userId);
       
-      if (!success) {
+      if (!result.success) {
         return res.status(404).json({ message: "Note not found or you don't have permission to update it" });
       }
       
-      res.status(200).json({ message: "Moment status toggled successfully" });
+      // Send a specific message based on whether the moment was added or removed
+      if (result.isNowMoment) {
+        res.status(200).json({ message: "Entry marked as a moment", isNowMoment: true });
+      } else {
+        res.status(200).json({ message: "Moment removed", isNowMoment: false });
+      }
     } catch (error) {
       console.error("Error toggling moment status:", error);
       res.status(500).json({ message: "Failed to toggle moment status" });

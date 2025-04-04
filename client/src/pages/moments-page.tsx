@@ -67,12 +67,16 @@ export default function MomentsPage() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate moments cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/moments"] });
+      
+      // Use the isNowMoment property from the response
+      const isNowMoment = data.isNowMoment;
+      
       toast({
-        title: "Success",
-        description: "Moment status updated successfully",
+        title: isNowMoment ? "Moment Added" : "Moment Removed",
+        description: data.message,
       });
     },
     onError: (error: Error) => {

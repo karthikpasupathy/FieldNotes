@@ -84,14 +84,14 @@ export default function NotesList({
       queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
       
-      // Check if the moment was added or removed
-      const isNowMoment = data.message.includes("added");
+      // Use the isNowMoment property from the response
+      const isNowMoment = data.isNowMoment;
       
       toast({
         title: isNowMoment ? "Moment Added" : "Moment Removed",
         description: isNowMoment 
-          ? "Your note has been marked as a special moment." 
-          : "Your note is no longer marked as a special moment.",
+          ? "Your note has been marked as a moment." 
+          : "Your note is no longer marked as a moment.",
       });
     },
     onError: (error: Error) => {

@@ -40,7 +40,7 @@ export interface IStorage {
   savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
   getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
   // Moments related methods
-  toggleMoment(noteId: number, userId: number): Promise<boolean>;
+  toggleMoment(noteId: number, userId: number): Promise<{ success: boolean; isNowMoment?: boolean }>;
   getMoments(userId: number): Promise<Note[]>;
   analyzeMoments(userId: number): Promise<string>;
   // Admin statistics methods
@@ -300,15 +300,15 @@ export class MemStorage implements IStorage {
   }
 
   // Moments related methods
-  async toggleMoment(noteId: number, userId: number): Promise<boolean> {
+  async toggleMoment(noteId: number, userId: number): Promise<{ success: boolean; isNowMoment?: boolean }> {
     const note = this.notes.get(noteId);
     if (note && note.userId === userId) {
       // Toggle the moment flag
       note.isMoment = !note.isMoment;
       this.notes.set(noteId, note);
-      return true;
+      return { success: true, isNowMoment: note.isMoment };
     }
-    return false;
+    return { success: false };
   }
 
   async getMoments(userId: number): Promise<Note[]> {
@@ -775,7 +775,7 @@ export class PostgresStorage implements IStorage {
   }
 
   // Moments related methods
-  async toggleMoment(noteId: number, userId: number): Promise<boolean> {
+  async toggleMoment(noteId: number, userId: number): Promise<{ success: boolean; isNowMoment?: boolean }> {
     try {
       // First check if the note exists and belongs to the user
       const checkResult = await this.executeQuery(
@@ -784,21 +784,22 @@ export class PostgresStorage implements IStorage {
       );
       
       if (checkResult.rows.length === 0) {
-        return false;
+        return { success: false };
       }
       
       // Toggle the is_moment value
       const currentValue = checkResult.rows[0].is_moment || false;
+      const newValue = !currentValue;
       
       await this.executeQuery(
         'UPDATE notes SET is_moment = $1 WHERE id = $2 AND user_id = $3',
-        [!currentValue, noteId, userId]
+        [newValue, noteId, userId]
       );
       
-      return true;
+      return { success: true, isNowMoment: newValue };
     } catch (error) {
       console.error(`Error toggling moment for note ${noteId}:`, error);
-      return false;
+      return { success: false };
     }
   }
 
