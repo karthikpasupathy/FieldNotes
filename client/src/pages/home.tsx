@@ -21,6 +21,7 @@ import Calendar from "@/components/Calendar";
 import RecentDays from "@/components/RecentDays";
 import UserProfile from "@/components/UserProfile";
 import PeriodAnalysis from "@/components/PeriodAnalysis";
+import { StreakBar } from "@/components/StreakBar";
 import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Note } from "@shared/schema";
@@ -359,6 +360,9 @@ export default function Home() {
                   <PeriodAnalysis currentDate={currentDateObj} />
                 </div>
               )}
+              
+              {/* Streak Bar */}
+              <StreakBar />
               
               {/* Daily Notes List with Analysis */}
               <NotesList 

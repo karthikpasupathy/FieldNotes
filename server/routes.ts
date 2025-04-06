@@ -657,6 +657,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint to get user's streak data
+  app.get("/api/streak", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const streakData = await storage.getUserStreak(userId);
+      res.json(streakData);
+    } catch (error) {
+      console.error("Error fetching user streak:", error);
+      res.status(500).json({ message: "Failed to fetch streak data" });
+    }
+  });
+  
   app.get("/api/analyze-moments", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
