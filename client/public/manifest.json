@@ -8,16 +8,21 @@
   "theme_color": "#3b4e87",
   "icons": [
     {
-      "src": "/images/daynotes-icon-192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/daynotes-icon-512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/daynotes-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
     }
   ]
 }

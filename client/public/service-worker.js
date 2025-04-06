@@ -1,12 +1,13 @@
 // Service Worker for Daynotes PWA
-const CACHE_NAME = 'daynotes-cache-v1';
+const CACHE_NAME = 'daynotes-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/images/daynotes-logo.png',
-  '/images/daynotes-icon-192.png',
-  '/images/daynotes-icon-512.png'
+  '/icons/daynotes-logo.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/favicon.ico'
 ];
 
 // Install event - Cache basic assets
