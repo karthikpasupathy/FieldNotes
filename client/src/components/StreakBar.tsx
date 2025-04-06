@@ -61,7 +61,7 @@ export function StreakBar() {
   
   return (
     <div 
-      className="streak-bar-container bg-gradient-to-r from-blue-50 to-blue-100 p-2 px-3 rounded-md mb-4 border border-blue-200 shadow-sm transition-all hover:shadow-md cursor-pointer"
+      className="streak-bar-container bg-white p-2 px-3 rounded-md mb-4 shadow-sm transition-all hover:shadow-md cursor-pointer relative before:absolute before:inset-0 before:rounded-md before:p-[1.5px] before:bg-gradient-to-r before:from-blue-400 before:to-blue-600 before:-z-10"
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center justify-between">
