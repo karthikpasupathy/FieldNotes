@@ -636,9 +636,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send a specific message based on whether the moment was added or removed
       if (result.isNowMoment) {
-        res.status(200).json({ message: "Entry marked as a moment", isNowMoment: true });
+        res.status(200).json({ message: "Entry marked as a moment", isNowMoment: true, noteId });
       } else {
-        res.status(200).json({ message: "Moment removed", isNowMoment: false });
+        res.status(200).json({ message: "Moment removed", isNowMoment: false, noteId });
       }
     } catch (error) {
       console.error("Error toggling moment status:", error);

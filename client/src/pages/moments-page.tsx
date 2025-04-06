@@ -40,16 +40,11 @@ export default function MomentsPage() {
     refetch: refetchAnalysis
   } = useQuery<{ analysis: string }>({
     queryKey: ["/api/analyze-moments"],
-    enabled: moments.length > 0,
+    enabled: false, // Don't run automatically, only when the user clicks the analyze button
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
   
-  // Auto-trigger analysis if URL has analyze parameter
-  useEffect(() => {
-    if (shouldAnalyze && moments.length > 0 && !momentsAnalysis?.analysis && !analysisLoading) {
-      handleRegenerateAnalysis();
-    }
-  }, [shouldAnalyze, moments.length, momentsAnalysis?.analysis]);
+  // We're no longer auto-triggering analysis, only doing it on user request
 
   // Toggle moment status mutation
   const toggleMomentMutation = useMutation({
@@ -69,8 +64,13 @@ export default function MomentsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Invalidate moments cache to refresh the list
+      // Invalidate all related caches to refresh them properly
       queryClient.invalidateQueries({ queryKey: ["/api/moments"] });
+      // Also invalidate the daily notes queries
+      const moment = moments.find(m => m.id === data.noteId);
+      if (moment) {
+        queryClient.invalidateQueries({ queryKey: [`/api/notes/${moment.date}`] });
+      }
       
       // Use the isNowMoment property from the response
       const isNowMoment = data.isNowMoment;
