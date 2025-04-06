@@ -3,64 +3,59 @@ import { XCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Cache key names for consistent version tracking
-const VERSION_CACHE_KEY = 'daynotes-app-version';
-const UPDATE_CHECK_KEY = 'daynotes-last-update-check';
+const DEPLOYMENT_VERSION_KEY = 'daynotes-deployment-version';
+const NOTIFICATION_SHOWN_KEY = 'daynotes-update-notification-shown';
 
 export default function UpdateNotification() {
   const [showNotification, setShowNotification] = useState(false);
   
-  // Force app to check for updates regularly (especially important for PWA installs)
-  const checkForUpdates = () => {
-    const lastVersion = localStorage.getItem(VERSION_CACHE_KEY);
-    // Current version based on timestamp - updating this daily forces refresh
-    const currentVersion = new Date().toISOString().split('T')[0]; 
-    
-    // If there's a version mismatch, show the notification
-    if (lastVersion && lastVersion !== currentVersion) {
-      console.log('Version change detected:', lastVersion, '->', currentVersion);
-      setShowNotification(true);
-    }
-    
-    // Store current version and last check time
-    localStorage.setItem(VERSION_CACHE_KEY, currentVersion);
-    localStorage.setItem(UPDATE_CHECK_KEY, new Date().toISOString());
-  };
-  
   useEffect(() => {
-    // Listen for messages from service worker
+    // Only listen for actual service worker update messages
     const onMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'APP_UPDATED') {
-        console.log('Received update message from service worker');
-        setShowNotification(true);
+        console.log('Received genuine update message from service worker');
+        
+        // We know this is a real update from the service worker
+        handleRealUpdate(event.data.version);
       }
     };
     
-    // Register service worker message listener
+    // Function to handle real updates that should be notified
+    const handleRealUpdate = (newVersion: string) => {
+      // Get the last recorded deployment version
+      const lastKnownVersion = localStorage.getItem(DEPLOYMENT_VERSION_KEY);
+      
+      // Has this specific update notification been shown before?
+      const notificationShownForVersion = localStorage.getItem(NOTIFICATION_SHOWN_KEY) === newVersion;
+      
+      // Only show notification if:
+      // 1. This is a genuinely new version
+      // 2. We haven't shown the notification for this version yet
+      if (lastKnownVersion !== newVersion && !notificationShownForVersion) {
+        console.log('New deployment detected:', lastKnownVersion, '->', newVersion);
+        setShowNotification(true);
+        
+        // Mark this version as having shown a notification
+        localStorage.setItem(NOTIFICATION_SHOWN_KEY, newVersion);
+      }
+      
+      // Always record the latest version
+      localStorage.setItem(DEPLOYMENT_VERSION_KEY, newVersion);
+    };
+    
+    // Only set up service worker listeners if the browser supports it
     if ('serviceWorker' in navigator) {
-      // Listen to messages from all service workers
+      // Listen for messages from any service worker
       navigator.serviceWorker.addEventListener('message', onMessage);
       
-      // Request update status from any active worker
-      navigator.serviceWorker.ready.then(registration => {
-        if (registration.active) {
-          registration.active.postMessage({ type: 'CHECK_UPDATE_STATUS' });
-        }
-      });
+      // We don't automatically ask for status on page load
+      // This prevents the notification from showing on every page load
     }
-    
-    // Check for updates on initial load
-    checkForUpdates();
-    
-    // Also set up periodic checking (important for PWAs that stay open for days)
-    const updateInterval = setInterval(() => {
-      checkForUpdates();
-    }, 60 * 60 * 1000); // Check once per hour
     
     return () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', onMessage);
       }
-      clearInterval(updateInterval);
     };
   }, []);
   
@@ -75,11 +70,16 @@ export default function UpdateNotification() {
       });
       
       // Use a more aggressive reload method that bypasses cache
-      window.location.href = window.location.href + '?refresh=' + Date.now();
+      window.location.href = window.location.href + 
+        (window.location.href.includes('?') ? '&' : '?') + 
+        'refresh=' + Date.now();
     } else {
       // Standard refresh for non-PWA
-      window.location.reload(); // Force reload from server
+      window.location.reload();
     }
+    
+    // Clear the notification shown flag to ensure it doesn't reappear
+    localStorage.removeItem(NOTIFICATION_SHOWN_KEY);
   };
   
   const handleDismiss = () => {

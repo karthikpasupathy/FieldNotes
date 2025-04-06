@@ -1,5 +1,8 @@
 // Service Worker for Daynotes PWA
-const CACHE_NAME = 'daynotes-cache-v4'; // Updated version number
+// This version number should be updated with each deployment
+const CACHE_NAME = 'daynotes-cache-v4';
+// Deployment version should be a unique identifier that changes with each deployment
+const DEPLOYMENT_VERSION = '2025-04-06-1';
 const UPDATE_NOTIFICATION_SENT = 'daynotes-update-notification-sent';
 const ASSETS_TO_CACHE = [
   '/',
@@ -26,7 +29,8 @@ function notifyClientsOfUpdate() {
       clients.forEach(client => {
         client.postMessage({ 
           type: 'APP_UPDATED',
-          version: CACHE_NAME,
+          version: DEPLOYMENT_VERSION,
+          cacheVersion: CACHE_NAME,
           timestamp: new Date().toISOString()
         });
       });
@@ -119,7 +123,8 @@ self.addEventListener('message', (event) => {
         if (client) {
           client.postMessage({ 
             type: 'APP_UPDATED',
-            version: CACHE_NAME,
+            version: DEPLOYMENT_VERSION,
+            cacheVersion: CACHE_NAME,
             timestamp: new Date().toISOString()
           });
         }
@@ -138,7 +143,8 @@ self.addEventListener('message', (event) => {
           clients.forEach(client => {
             client.postMessage({ 
               type: 'APP_UPDATED',
-              version: CACHE_NAME,
+              version: DEPLOYMENT_VERSION,
+              cacheVersion: CACHE_NAME,
               timestamp: new Date().toISOString(),
               source: 'broadcast'
             });

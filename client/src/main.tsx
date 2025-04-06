@@ -93,7 +93,8 @@ if ('serviceWorker' in navigator) {
               // This ensures our UpdateNotification component gets the message
               navigator.serviceWorker.controller?.postMessage({ 
                 type: 'BROADCAST_UPDATE',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                clientVersion: new Date().toISOString() // Include version identifier
               });
             }
           });
@@ -120,14 +121,29 @@ if ('serviceWorker' in navigator) {
     if (event.data && event.data.type === 'APP_UPDATED') {
       console.log('[PWA] App updated notification received from service worker');
       
-      // The UpdateNotification component will handle showing the banner
-      // but we add this toast as a backup mechanism
-      toast({
-        title: "Update Available",
-        description: "Refresh to get the latest version of Daynotes",
-        variant: "default",
-        duration: 10000, // 10 seconds
-      });
+      // Get the last notification version shown
+      const NOTIFICATION_SHOWN_KEY = 'daynotes-update-notification-shown';
+      const DEPLOYMENT_VERSION_KEY = 'daynotes-deployment-version';
+      
+      // Get the last recorded deployment version
+      const lastKnownVersion = localStorage.getItem(DEPLOYMENT_VERSION_KEY);
+      
+      // Has this specific update notification been shown before?
+      const notificationShownForVersion = localStorage.getItem(NOTIFICATION_SHOWN_KEY) === event.data.version;
+      
+      // Only show notification if:
+      // 1. This is a genuinely new version
+      // 2. We haven't shown the notification for this version yet
+      if (lastKnownVersion !== event.data.version && !notificationShownForVersion) {
+        // The UpdateNotification component will handle showing the banner
+        // but we add this toast as a backup mechanism
+        toast({
+          title: "Update Available",
+          description: "Refresh to get the latest version of Daynotes",
+          variant: "default",
+          duration: 10000, // 10 seconds
+        });
+      }
     }
   });
 }
