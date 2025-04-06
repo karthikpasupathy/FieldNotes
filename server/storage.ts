@@ -333,99 +333,117 @@ export class MemStorage implements IStorage {
   
   async getUserStreak(userId: number): Promise<{ currentStreak: number; longestStreak: number; lastEntryDate: string | null }> {
     // Get all dates that have notes for this user
-    const datesWithNotes = await this.getAllDates(userId);
+    const allDates = await this.getAllDates(userId);
     
-    if (datesWithNotes.length === 0) {
+    if (allDates.length === 0) {
       return { currentStreak: 0, longestStreak: 0, lastEntryDate: null };
     }
     
-    // Sort dates in descending order (newest first)
-    datesWithNotes.sort((a, b) => b.localeCompare(a));
-    
+    // Get the current date in the same format for comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const todayStr = today.toISOString().split('T')[0];
-    const lastEntryDate = datesWithNotes[0];
+    
+    // Find the most recent entry date
+    const sortedDates = [...allDates].sort((a, b) => b.localeCompare(a));
+    const lastEntryDate = sortedDates[0];
     
     // Calculate current streak
     let currentStreak = 0;
-    let checkDate = new Date(today);
     
-    // If the last entry is from today, start counting the streak
-    if (lastEntryDate === todayStr) {
+    // Check if the user has an entry for today
+    const hasEntryToday = allDates.includes(todayStr);
+    
+    if (hasEntryToday) {
+      // Start with today's entry
       currentStreak = 1;
+      let checkDate = new Date(today);
       
-      // Check for consecutive days backward from today
-      for (let i = 1; i < 1000; i++) { // Limit to 1000 days to prevent infinite loops
+      // Check backwards for consecutive days
+      while (true) {
+        // Move to previous day
         checkDate.setDate(checkDate.getDate() - 1);
-        const dateStr = checkDate.toISOString().split('T')[0];
+        const previousDayStr = checkDate.toISOString().split('T')[0];
         
-        if (datesWithNotes.includes(dateStr)) {
+        // If there's an entry for the previous day, increment streak
+        if (allDates.includes(previousDayStr)) {
           currentStreak++;
         } else {
+          // Break the loop when we find a day without an entry
           break;
         }
       }
     } else {
-      // Last entry is not today, check if it was yesterday
+      // Check if the most recent entry was yesterday
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
       
       if (lastEntryDate === yesterdayStr) {
+        // Start streak from yesterday
         currentStreak = 1;
-        checkDate = new Date(yesterday);
+        let checkDate = new Date(yesterday);
         
-        // Check for consecutive days backward from yesterday
-        for (let i = 1; i < 1000; i++) {
+        // Check backwards for consecutive days
+        while (true) {
+          // Move to previous day
           checkDate.setDate(checkDate.getDate() - 1);
-          const dateStr = checkDate.toISOString().split('T')[0];
+          const previousDayStr = checkDate.toISOString().split('T')[0];
           
-          if (datesWithNotes.includes(dateStr)) {
+          // If there's an entry for the previous day, increment streak
+          if (allDates.includes(previousDayStr)) {
             currentStreak++;
           } else {
+            // Break the loop when we find a day without an entry
             break;
           }
         }
       } else {
-        // Streak is broken
+        // The streak is broken (no entry today or yesterday)
         currentStreak = 0;
       }
     }
     
     // Calculate longest streak
     let longestStreak = 0;
-    let currentLongestStreak = 0;
     
-    // Sort dates in ascending order (oldest first) for longest streak calculation
-    datesWithNotes.sort((a, b) => a.localeCompare(b));
+    // Convert date strings to Date objects for easier manipulation
+    const dateObjects = allDates.map((dateStr: string) => new Date(dateStr));
+    dateObjects.sort((a: Date, b: Date) => a.getTime() - b.getTime());
     
-    for (let i = 0; i < datesWithNotes.length; i++) {
-      if (i === 0) {
-        currentLongestStreak = 1;
-      } else {
-        const currentDate = new Date(datesWithNotes[i]);
-        const prevDate = new Date(datesWithNotes[i - 1]);
+    // Only calculate longest streak if we have dates
+    if (dateObjects.length > 0) {
+      let currentLongestStreak = 1;
+      
+      for (let i = 1; i < dateObjects.length; i++) {
+        const currentDate = dateObjects[i];
+        const prevDate = dateObjects[i - 1];
         
-        // Check if dates are consecutive
+        // Calculate days between dates
         const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays === 1) {
+          // Consecutive day, increment current streak
           currentLongestStreak++;
         } else {
+          // Non-consecutive day, reset streak but save it if it's the longest
           if (currentLongestStreak > longestStreak) {
             longestStreak = currentLongestStreak;
           }
           currentLongestStreak = 1;
         }
       }
+      
+      // Check one last time after the loop ends
+      if (currentLongestStreak > longestStreak) {
+        longestStreak = currentLongestStreak;
+      }
     }
     
-    // Check one last time after the loop ends
-    if (currentLongestStreak > longestStreak) {
-      longestStreak = currentLongestStreak;
+    // The current streak should never be greater than the longest streak
+    if (currentStreak > longestStreak) {
+      longestStreak = currentStreak;
     }
     
     return { 
@@ -947,7 +965,7 @@ export class PostgresStorage implements IStorage {
     try {
       // Get all the dates with notes for this user
       const result = await this.executeQuery(
-        'SELECT DISTINCT date FROM notes WHERE user_id = $1 ORDER BY date DESC',
+        'SELECT DISTINCT date FROM notes WHERE user_id = $1 ORDER BY date',
         [userId]
       );
       
@@ -955,97 +973,117 @@ export class PostgresStorage implements IStorage {
         return { currentStreak: 0, longestStreak: 0, lastEntryDate: null };
       }
       
-      const dates = result.rows.map((row: any) => row.date);
+      // Get all dates as strings in YYYY-MM-DD format
+      const allDates = result.rows.map((row: any) => row.date);
       
-      // Sort dates in descending order (newest first)
-      dates.sort((a: string, b: string) => b.localeCompare(a));
-      
+      // Get the current date in the same format for comparison
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
       const todayStr = today.toISOString().split('T')[0];
-      const lastEntryDate = dates[0];
+      
+      // Find the most recent entry date
+      const sortedDates = [...allDates].sort((a, b) => b.localeCompare(a));
+      const lastEntryDate = sortedDates[0];
       
       // Calculate current streak
       let currentStreak = 0;
-      let checkDate = new Date(today);
       
-      // If the last entry is from today, start counting the streak
-      if (lastEntryDate === todayStr) {
+      // Check if the user has an entry for today
+      const hasEntryToday = allDates.includes(todayStr);
+      
+      if (hasEntryToday) {
+        // Start with today's entry
         currentStreak = 1;
+        let checkDate = new Date(today);
         
-        // Check for consecutive days backward from today
-        for (let i = 1; i < 1000; i++) { // Limit to 1000 days to prevent infinite loops
+        // Check backwards for consecutive days
+        while (true) {
+          // Move to previous day
           checkDate.setDate(checkDate.getDate() - 1);
-          const dateStr = checkDate.toISOString().split('T')[0];
+          const previousDayStr = checkDate.toISOString().split('T')[0];
           
-          if (dates.includes(dateStr)) {
+          // If there's an entry for the previous day, increment streak
+          if (allDates.includes(previousDayStr)) {
             currentStreak++;
           } else {
+            // Break the loop when we find a day without an entry
             break;
           }
         }
       } else {
-        // Last entry is not today, check if it was yesterday
+        // Check if the most recent entry was yesterday
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
         
         if (lastEntryDate === yesterdayStr) {
+          // Start streak from yesterday
           currentStreak = 1;
-          checkDate = new Date(yesterday);
+          let checkDate = new Date(yesterday);
           
-          // Check for consecutive days backward from yesterday
-          for (let i = 1; i < 1000; i++) {
+          // Check backwards for consecutive days
+          while (true) {
+            // Move to previous day
             checkDate.setDate(checkDate.getDate() - 1);
-            const dateStr = checkDate.toISOString().split('T')[0];
+            const previousDayStr = checkDate.toISOString().split('T')[0];
             
-            if (dates.includes(dateStr)) {
+            // If there's an entry for the previous day, increment streak
+            if (allDates.includes(previousDayStr)) {
               currentStreak++;
             } else {
+              // Break the loop when we find a day without an entry
               break;
             }
           }
         } else {
-          // Streak is broken
+          // The streak is broken (no entry today or yesterday)
           currentStreak = 0;
         }
       }
       
       // Calculate longest streak
       let longestStreak = 0;
-      let currentLongestStreak = 0;
       
-      // Sort dates in ascending order (oldest first) for longest streak calculation
-      dates.sort((a: string, b: string) => a.localeCompare(b));
+      // Convert date strings to Date objects for easier manipulation
+      const dateObjects = allDates.map(dateStr => new Date(dateStr));
+      dateObjects.sort((a, b) => a.getTime() - b.getTime());
       
-      for (let i = 0; i < dates.length; i++) {
-        if (i === 0) {
-          currentLongestStreak = 1;
-        } else {
-          const currentDate = new Date(dates[i]);
-          const prevDate = new Date(dates[i - 1]);
+      // Only calculate longest streak if we have dates
+      if (dateObjects.length > 0) {
+        let currentLongestStreak = 1;
+        
+        for (let i = 1; i < dateObjects.length; i++) {
+          const currentDate = dateObjects[i];
+          const prevDate = dateObjects[i - 1];
           
-          // Check if dates are consecutive
+          // Calculate days between dates
           const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
           
           if (diffDays === 1) {
+            // Consecutive day, increment current streak
             currentLongestStreak++;
           } else {
+            // Non-consecutive day, reset streak but save it if it's the longest
             if (currentLongestStreak > longestStreak) {
               longestStreak = currentLongestStreak;
             }
             currentLongestStreak = 1;
           }
         }
+        
+        // Check one last time after the loop ends
+        if (currentLongestStreak > longestStreak) {
+          longestStreak = currentLongestStreak;
+        }
       }
       
-      // Check one last time after the loop ends
-      if (currentLongestStreak > longestStreak) {
-        longestStreak = currentLongestStreak;
+      // The current streak should never be greater than the longest streak
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
       }
       
+      // Return the calculated streak data
       return { 
         currentStreak, 
         longestStreak, 
