@@ -11,15 +11,25 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
   
-  // Detect iOS devices
+  // Detect iOS devices and check if it's a mobile device
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOSDevice(isIOS);
+    
+    // Check if it's a mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobileDevice(isMobile);
   }, []);
   
   // Listen for the beforeinstallprompt event
   useEffect(() => {
+    // Only proceed if it's a mobile device
+    if (!isMobileDevice) {
+      return;
+    }
+    
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -43,7 +53,7 @@ export default function InstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [isMobileDevice]);
   
   // Handle the install button click
   const handleInstallClick = async () => {
@@ -74,8 +84,8 @@ export default function InstallPrompt() {
     localStorage.setItem('installPromptDismissed', Date.now().toString());
   };
   
-  // If nothing to show, render nothing
-  if (!showPrompt) {
+  // If nothing to show or not on a mobile device, render nothing
+  if (!showPrompt || !isMobileDevice) {
     return null;
   }
   
