@@ -152,9 +152,7 @@ export default function MomentsPage() {
               </Link>
             </Button>
             <h1 className="text-xl font-bold flex items-center grow">
-              <div className="flex items-center justify-center h-5 w-5 mr-2 bg-yellow-400 text-white rounded-sm">
-                <Sparkles className="h-3.5 w-3.5" />
-              </div>
+              <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-8 w-8 mr-2" />
               Moments
             </h1>
             {moments.length > 0 && (
@@ -179,9 +177,7 @@ export default function MomentsPage() {
                 </Link>
               </Button>
               <h1 className="text-2xl font-bold flex items-center">
-                <div className="flex items-center justify-center h-6 w-6 mr-2 bg-yellow-400 text-white rounded-sm">
-                  <Sparkles className="h-4 w-4" />
-                </div>
+                <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-8 w-8 mr-2" />
                 Moments
               </h1>
             </div>

@@ -173,7 +173,10 @@ export default function AdminDashboardPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex items-center">
+          <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-10 w-10 mr-3" />
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        </div>
         <Button variant="outline" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
           Logout

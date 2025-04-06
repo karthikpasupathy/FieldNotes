@@ -85,6 +85,12 @@ export default function ResetPasswordPage() {
         {user ? "Back to Notes" : "Back to Login"}
       </Button>
 
+      <div className="text-center mb-6">
+        <div className="flex justify-center mb-2">
+          <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-16 w-16" />
+        </div>
+      </div>
+      
       <Card>
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>

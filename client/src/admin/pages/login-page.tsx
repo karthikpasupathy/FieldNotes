@@ -33,6 +33,14 @@ export default function AdminLoginPage() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-2">
+            <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-16 w-16" />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+            Daynotes Admin
+          </h1>
+        </div>
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>

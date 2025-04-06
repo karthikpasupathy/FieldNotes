@@ -87,7 +87,7 @@ export default function AuthPage() {
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-3">
-              <img src="/images/daynotes-logo.png" alt="Daynotes Logo" className="h-16 w-16" />
+              <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-20 w-20" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-gray-900">
               Daynotes

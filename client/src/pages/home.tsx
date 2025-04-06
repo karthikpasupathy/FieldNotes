@@ -234,7 +234,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <h1 className="text-xl font-bold text-gray-800 flex items-center">
-              <img src="/images/daynotes-logo.png" alt="Daynotes Logo" className="h-8 w-8 mr-2" /> 
+              <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-10 w-10 mr-2" /> 
               <span className="hidden sm:inline">Daynotes</span>
             </h1>
             
