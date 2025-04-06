@@ -594,59 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Admin endpoint to export user data
-  app.get("/api/admin/user/:userId/export", isAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId, 10);
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const userData = await storage.exportUserNotes(userId);
-      
-      // Sanitize user data to remove sensitive information
-      const userSanitized = {
-        id: userData.user.id,
-        username: userData.user.username,
-        email: userData.user.email,
-        name: userData.user.name,
-      };
-      
-      // Format the data for export
-      const exportData = {
-        user: userSanitized,
-        notes: userData.notes,
-        exportDate: new Date().toISOString(),
-      };
-      
-      res.json(exportData);
-    } catch (error) {
-      console.error("Error exporting user data:", error);
-      res.status(500).json({ message: "Failed to export user data" });
-    }
-  });
-  
-  // Admin endpoint to delete a user
-  app.delete("/api/admin/user/:userId", isAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId, 10);
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-      
-      const success = await storage.deleteUser(userId);
-      
-      if (success) {
-        res.json({ message: "User deleted successfully" });
-      } else {
-        res.status(404).json({ message: "User not found or could not be deleted" });
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
-    }
-  });
-
+  // Admin active users endpoint
   app.get("/api/admin-active-users", isAdmin, async (req, res) => {
     try {
       const thirtyDaysAgo = new Date();

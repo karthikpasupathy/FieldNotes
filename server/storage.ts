@@ -48,9 +48,6 @@ export interface IStorage {
   // Admin statistics methods
   getTotalUsers(): Promise<number>;
   getActiveUsersSince(date: Date): Promise<number>;
-  // User data export and management
-  exportUserNotes(userId: number): Promise<{notes: Note[], user: User}>;
-  deleteUser(userId: number): Promise<boolean>;
   getTotalNotes(): Promise<number>;
   getTotalAnalyses(): Promise<number>;
   // Admin user management
@@ -436,48 +433,6 @@ export class MemStorage implements IStorage {
       longestStreak, 
       lastEntryDate 
     };
-  }
-
-  async exportUserNotes(userId: number): Promise<{notes: Note[], user: User}> {
-    // Get user data
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error(`User with ID ${userId} not found.`);
-    }
-
-    // Get all notes for this user
-    const notes = Array.from(this.notes.values())
-      .filter(note => note.userId === userId)
-      .sort((a, b) => b.date.localeCompare(a.date) || new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    return { notes, user };
-  }
-
-  async deleteUser(userId: number): Promise<boolean> {
-    // Get user to check if exists
-    const user = await this.getUser(userId);
-    if (!user) {
-      return false;
-    }
-
-    // Delete all notes for this user
-    Array.from(this.notes.entries()).forEach(([id, note]) => {
-      if (note.userId === userId) {
-        this.notes.delete(id);
-      }
-    });
-
-    // Delete all period analyses for this user
-    Array.from(this.periodAnalyses.entries()).forEach(([id, analysis]) => {
-      if (analysis.userId === userId) {
-        this.periodAnalyses.delete(id);
-      }
-    });
-
-    // Delete the user
-    this.users.delete(userId);
-    
-    return true;
   }
 }
 
@@ -1100,76 +1055,6 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error calculating streak for user ${userId}:`, error);
       return { currentStreak: 0, longestStreak: 0, lastEntryDate: null };
-    }
-  }
-
-  async exportUserNotes(userId: number): Promise<{notes: Note[], user: User}> {
-    try {
-      // Get user data
-      const user = await this.getUser(userId);
-      if (!user) {
-        throw new Error(`User with ID ${userId} not found.`);
-      }
-
-      // Get all notes for this user
-      const notesResult = await this.executeQuery(
-        `SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment"
-         FROM notes 
-         WHERE user_id = $1
-         ORDER BY date DESC, timestamp DESC`,
-         [userId]
-      );
-
-      return { notes: notesResult.rows, user };
-    } catch (error) {
-      console.error(`Error exporting notes for user ${userId}:`, error);
-      throw new Error('Failed to export user notes. Please try again later.');
-    }
-  }
-
-  async deleteUser(userId: number): Promise<boolean> {
-    try {
-      // Start a transaction
-      await this.executeQuery('BEGIN');
-
-      // Delete user's period analyses
-      await this.executeQuery(
-        'DELETE FROM period_analyses WHERE user_id = $1',
-        [userId]
-      );
-
-      // Delete user's notes
-      await this.executeQuery(
-        'DELETE FROM notes WHERE user_id = $1',
-        [userId]
-      );
-
-      // Delete user's sessions
-      await this.executeQuery(
-        'DELETE FROM "session" WHERE sess->>\'passport\' LIKE $1',
-        [`%"user":${userId}%`]
-      );
-
-      // Delete the user
-      const result = await this.executeQuery(
-        'DELETE FROM users WHERE id = $1 RETURNING id',
-        [userId]
-      );
-
-      // Commit the transaction
-      await this.executeQuery('COMMIT');
-
-      return (result.rowCount as number) > 0;
-    } catch (error) {
-      // Rollback the transaction in case of error
-      try {
-        await this.executeQuery('ROLLBACK');
-      } catch (rollbackError) {
-        console.error('Error rolling back transaction:', rollbackError);
-      }
-
-      console.error(`Error deleting user ${userId}:`, error);
-      return false;
     }
   }
 }

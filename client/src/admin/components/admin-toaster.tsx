@@ -1,8 +1,8 @@
-import { useAdminToast } from "@/admin/hooks/use-admin-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast";
 
 export function AdminToaster() {
-  const { toasts } = useAdminToast();
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>

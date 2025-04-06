@@ -1,31 +1,17 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAdminAuth } from "@/admin/hooks/use-admin-auth";
-import { getAdminQueryFn, adminApiRequest, adminQueryClient } from "@/admin/lib/admin-query-client";
-import { useToast } from "@/hooks/use-toast";
+import { getAdminQueryFn } from "@/admin/lib/admin-query-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Loader2, 
   Users, 
   FileText, 
   LogOut, 
   Mail,
   User,
-  Calendar,
-  Download,
-  Trash2
+  Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { 
@@ -57,106 +43,10 @@ interface ActiveUserDetails extends UserDetails {
 
 // UsersList component to display all users
 function UsersList() {
-  const { toast } = useToast();
-  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
   const { data: users, isLoading } = useQuery<UserDetails[]>({
     queryKey: ["/api/admin-users"],
     queryFn: getAdminQueryFn({ on401: "throw" }),
   });
-
-  // Mutation for exporting user data
-  const exportUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await adminApiRequest("GET", `/api/admin/user/${userId}/export`);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      // Generate filename based on username and date
-      const filename = `${data.user.username}_export_${new Date().toISOString().split('T')[0]}.json`;
-      
-      // Create a downloadable JSON file
-      const dataStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create temporary link and trigger download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export successful",
-        description: `Data for ${data.user.username} has been exported.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Export failed",
-        description: error instanceof Error ? error.message : "Failed to export user data",
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Mutation for deleting a user
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await adminApiRequest("DELETE", `/api/admin/user/${userId}`);
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "User deleted",
-        description: "The user account has been permanently deleted.",
-      });
-      
-      // Invalidate queries to refresh the data
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-users"] });
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-stats"] });
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-active-users"] });
-      
-      // Reset state
-      setDeletingUserId(null);
-      setIsDialogOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Deletion failed",
-        description: error instanceof Error ? error.message : "Failed to delete user",
-        variant: "destructive",
-      });
-      setDeletingUserId(null);
-      setIsDialogOpen(false);
-    }
-  });
-  
-  const handleExportUser = (userId: number) => {
-    exportUserMutation.mutate(userId);
-  };
-  
-  const confirmDeleteUser = (userId: number) => {
-    setDeletingUserId(userId);
-    setIsDialogOpen(true);
-  };
-  
-  const handleDeleteUser = () => {
-    if (deletingUserId) {
-      deleteUserMutation.mutate(deletingUserId);
-    }
-  };
-  
-  const cancelDelete = () => {
-    setDeletingUserId(null);
-    setIsDialogOpen(false);
-  };
 
   if (isLoading) {
     return (
@@ -175,195 +65,40 @@ function UsersList() {
   }
 
   return (
-    <>
-      <Table>
-        <TableCaption>List of all registered users</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Username</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+    <Table>
+      <TableCaption>List of all registered users</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Name</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.id}>
+            <TableCell className="font-medium flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.username}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.email}
+            </TableCell>
+            <TableCell>{user.name || '-'}</TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium flex items-center">
-                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                {user.username}
-              </TableCell>
-              <TableCell className="flex items-center">
-                <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                {user.email}
-              </TableCell>
-              <TableCell>{user.name || '-'}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleExportUser(user.id)}
-                    disabled={exportUserMutation.isPending}
-                  >
-                    {exportUserMutation.isPending && exportUserMutation.variables === user.id ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-1" />
-                    )}
-                    Export
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => confirmDeleteUser(user.id)}
-                    disabled={deleteUserMutation.isPending}
-                  >
-                    {deleteUserMutation.isPending && deletingUserId === user.id ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-1" />
-                    )}
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      
-      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user's account
-              and all associated notes, moments, and analyses.
-              
-              <div className="mt-4 bg-amber-50 dark:bg-amber-950 p-3 rounded border border-amber-200 dark:border-amber-800">
-                <p className="font-medium">Recommendation:</p>
-                <p className="text-sm mt-1">Export the user's data before deletion by clicking the "Export" button.</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteUser} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete User
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
 // ActiveUsersList component to display active users
 function ActiveUsersList() {
-  const { toast } = useToast();
-  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
   const { data: activeUsers, isLoading } = useQuery<ActiveUserDetails[]>({
     queryKey: ["/api/admin-active-users"],
     queryFn: getAdminQueryFn({ on401: "throw" }),
   });
-
-  // Mutation for exporting user data
-  const exportUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await adminApiRequest("GET", `/api/admin/user/${userId}/export`);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      // Generate filename based on username and date
-      const filename = `${data.user.username}_export_${new Date().toISOString().split('T')[0]}.json`;
-      
-      // Create a downloadable JSON file
-      const dataStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create temporary link and trigger download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export successful",
-        description: `Data for ${data.user.username} has been exported.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Export failed",
-        description: error instanceof Error ? error.message : "Failed to export user data",
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Mutation for deleting a user
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await adminApiRequest("DELETE", `/api/admin/user/${userId}`);
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "User deleted",
-        description: "The user account has been permanently deleted.",
-      });
-      
-      // Invalidate queries to refresh the data
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-users"] });
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-stats"] });
-      adminQueryClient.invalidateQueries({ queryKey: ["/api/admin-active-users"] });
-      
-      // Reset state
-      setDeletingUserId(null);
-      setIsDialogOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Deletion failed",
-        description: error instanceof Error ? error.message : "Failed to delete user",
-        variant: "destructive",
-      });
-      setDeletingUserId(null);
-      setIsDialogOpen(false);
-    }
-  });
-  
-  const handleExportUser = (userId: number) => {
-    exportUserMutation.mutate(userId);
-  };
-  
-  const confirmDeleteUser = (userId: number) => {
-    setDeletingUserId(userId);
-    setIsDialogOpen(true);
-  };
-  
-  const handleDeleteUser = () => {
-    if (deletingUserId) {
-      deleteUserMutation.mutate(deletingUserId);
-    }
-  };
-  
-  const cancelDelete = () => {
-    setDeletingUserId(null);
-    setIsDialogOpen(false);
-  };
 
   if (isLoading) {
     return (
@@ -382,93 +117,34 @@ function ActiveUsersList() {
   }
 
   return (
-    <>
-      <Table>
-        <TableCaption>Users active in the last 30 days</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Username</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Last Active</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+    <Table>
+      <TableCaption>Users active in the last 30 days</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Last Active</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {activeUsers.map((user) => (
+          <TableRow key={user.id}>
+            <TableCell className="font-medium flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.username}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+              {user.email}
+            </TableCell>
+            <TableCell className="flex items-center">
+              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+              {new Date(user.lastActive).toLocaleString()}
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {activeUsers.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium flex items-center">
-                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                {user.username}
-              </TableCell>
-              <TableCell className="flex items-center">
-                <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                {user.email}
-              </TableCell>
-              <TableCell className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                {new Date(user.lastActive).toLocaleString()}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleExportUser(user.id)}
-                    disabled={exportUserMutation.isPending}
-                  >
-                    {exportUserMutation.isPending && exportUserMutation.variables === user.id ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-1" />
-                    )}
-                    Export
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => confirmDeleteUser(user.id)}
-                    disabled={deleteUserMutation.isPending}
-                  >
-                    {deleteUserMutation.isPending && deletingUserId === user.id ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-1" />
-                    )}
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      
-      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user's account
-              and all associated notes, moments, and analyses.
-              
-              <div className="mt-4 bg-amber-50 dark:bg-amber-950 p-3 rounded border border-amber-200 dark:border-amber-800">
-                <p className="font-medium">Recommendation:</p>
-                <p className="text-sm mt-1">Export the user's data before deletion by clicking the "Export" button.</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteUser} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete User
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

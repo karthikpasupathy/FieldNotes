@@ -1,26 +1,24 @@
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { QueryClient } from "@tanstack/react-query";
-
-// Simple temporary page display
-function AdminMessage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">Admin Section</h1>
-      <p className="text-xl mb-8">This section is under maintenance. Please check back later.</p>
-    </div>
-  );
-}
+import { adminQueryClient } from "./admin/lib/admin-query-client";
+import { AdminToaster } from "./admin/components/admin-toaster";
+import { AdminAuthProvider } from "./admin/hooks/use-admin-auth";
+import { AdminProtectedRoute } from "./admin/lib/admin-protected-route";
+import AdminLoginPage from "./admin/pages/login-page";
+import AdminDashboardPage from "./admin/pages/dashboard-page";
+import AdminNotFound from "./admin/pages/not-found";
 
 export default function AdminApp() {
-  // Create a new QueryClient for the admin app
-  const queryClient = new QueryClient();
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      <AdminMessage />
-      <Toaster />
+    <QueryClientProvider client={adminQueryClient}>
+      <AdminAuthProvider>
+        <Switch>
+          <Route path="/admin-login" component={AdminLoginPage} />
+          <AdminProtectedRoute path="/admin-dashboard" component={AdminDashboardPage} />
+          <Route component={AdminNotFound} />
+        </Switch>
+      </AdminAuthProvider>
+      <AdminToaster />
     </QueryClientProvider>
   );
 }
