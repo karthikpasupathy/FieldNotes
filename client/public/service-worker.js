@@ -1,5 +1,5 @@
 // Service Worker for Daynotes PWA
-const CACHE_NAME = 'daynotes-cache-v2';
+const CACHE_NAME = 'daynotes-cache-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -12,6 +12,9 @@ const ASSETS_TO_CACHE = [
 
 // Install event - Cache basic assets
 self.addEventListener('install', (event) => {
+  // Skip waiting to activate the new service worker immediately
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -21,20 +24,35 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - Clean up old caches
+// Activate event - Clean up old caches and notify clients
 self.addEventListener('activate', (event) => {
   const cacheAllowlist = [CACHE_NAME];
 
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheAllowlist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheAllowlist.indexOf(cacheName) === -1) {
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      
+      // Notify all clients about the update
+      self.clients.claim().then(() => {
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ 
+              type: 'APP_UPDATED',
+              version: CACHE_NAME
+            });
+          });
+        });
+      })
+    ])
   );
 });
 

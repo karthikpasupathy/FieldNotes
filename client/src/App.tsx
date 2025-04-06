@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,16 +9,42 @@ import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
 import { ProtectedRoute } from "./lib/protected-route";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import InstallPrompt from "@/components/InstallPrompt";
+import UpdateNotification from "@/components/UpdateNotification";
+import { Loader2 } from "lucide-react";
+
+// Component for the root route that redirects to proper location
+function RootRedirect() {
+  const today = new Date().toISOString().split('T')[0];
+  const { user, isLoading } = useAuth();
+  
+  // While loading, show a loader
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // If user is logged in, redirect to today's page
+  // If not, redirect to auth page
+  return user ? <Redirect to={`/day/${today}`} /> : <Redirect to="/auth" />;
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <UpdateNotification />
         <Switch>
+          {/* Root redirect to current day */}
+          <Route path="/">
+            <RootRedirect />
+          </Route>
+          
           {/* Protected Routes */}
-          <ProtectedRoute path="/" component={Home} />
           <ProtectedRoute path="/day/:date" component={Home} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <ProtectedRoute path="/moments" component={MomentsPage} />
