@@ -30,7 +30,7 @@ export function StreakBar() {
   
   if (isLoading) {
     return (
-      <div className="streak-bar-container bg-white p-2 rounded-md mb-4 animate-pulse">
+      <div className="streak-bar-container bg-white p-2 px-3 rounded-md mb-4 animate-pulse relative before:content-[''] before:absolute before:inset-0 before:rounded-md before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-pink-500 before:to-purple-600 before:-z-10">
         <div className="h-7 bg-slate-200 rounded-md"></div>
       </div>
     );
@@ -49,7 +49,7 @@ export function StreakBar() {
   
   return (
     <div 
-      className="streak-bar-container bg-white p-2 px-3 rounded-md mb-4 shadow-sm transition-all hover:shadow-md relative before:absolute before:inset-0 before:rounded-md before:p-[1.5px] before:bg-gradient-to-r before:from-purple-400 before:via-pink-500 before:to-purple-600 before:-z-10"
+      className="streak-bar-container bg-white p-2 px-3 rounded-md mb-4 shadow-sm transition-all hover:shadow-md relative before:content-[''] before:absolute before:inset-0 before:rounded-md before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-pink-500 before:to-purple-600 before:-z-10"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
