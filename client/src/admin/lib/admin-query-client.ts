@@ -1,58 +1,64 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+
+export const adminQueryClient = new QueryClient();
+
+type Options = {
+  on401: "throw" | "returnNull";
+};
+
+export function getAdminQueryFn({ on401 }: Options) {
+  return async function adminQueryFn<T>({ queryKey }: { queryKey: any[] }): Promise<T> {
+    try {
+      const endpoint = queryKey[0] as string;
+      const response = await fetch(endpoint);
+      
+      if (response.status === 401) {
+        if (on401 === "returnNull") {
+          return null as T;
+        } else {
+          throw new Error("Unauthorized: Please login to continue");
+        }
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      }
+      
+      if (response.status === 204) {
+        return null as T;
+      }
+      
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  };
+}
 
 export async function adminApiRequest(
   method: string,
-  url: string,
-  data?: unknown | undefined,
+  endpoint: string,
+  data?: unknown
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const options: RequestInit = {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: {
+      "Content-Type": "application/json",
+    },
     credentials: "include",
-  });
-
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-  
-  return res;
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getAdminQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    if (!res.ok) {
-      const text = (await res.text()) || res.statusText;
-      throw new Error(`${res.status}: ${text}`);
-    }
-    
-    return await res.json();
   };
 
-export const adminQueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      queryFn: getAdminQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-    mutations: {
-      retry: false,
-    },
-  },
-});
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(endpoint, options);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Request failed with status ${response.status}`);
+  }
+
+  return response;
+}
