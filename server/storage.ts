@@ -448,7 +448,7 @@ export class PostgresStorage implements IStorage {
 
   async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
     try {
-      let query = 'SELECT * FROM notes WHERE date = $1';
+      let query = 'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment" FROM notes WHERE date = $1';
       const params: any[] = [date];
 
       if (userId !== undefined) {
@@ -599,7 +599,7 @@ export class PostgresStorage implements IStorage {
   async getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]> {
     try {
       const query = `
-        SELECT * FROM notes 
+        SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment" FROM notes 
         WHERE user_id = $1 
         AND date >= $2 
         AND date <= $3 
@@ -809,7 +809,7 @@ export class PostgresStorage implements IStorage {
   async getMoments(userId: number): Promise<Note[]> {
     try {
       const result = await this.executeQuery(
-        'SELECT * FROM notes WHERE user_id = $1 AND is_moment = true ORDER BY timestamp DESC',
+        'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment" FROM notes WHERE user_id = $1 AND is_moment = true ORDER BY timestamp DESC',
         [userId]
       );
       
