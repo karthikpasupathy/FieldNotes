@@ -976,20 +976,29 @@ export class PostgresStorage implements IStorage {
       // Get all dates as strings in YYYY-MM-DD format
       const allDates = result.rows.map((row: any) => row.date);
       
-      // Get the current date in the same format for comparison
+      // Get the current system date in the same format for comparison
       const today = new Date();
+      // Make sure we're just comparing the date part (no time)
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
       
-      // Find the most recent entry date
-      const sortedDates = [...allDates].sort((a, b) => b.localeCompare(a));
+      // Filter out any future dates based on system time
+      const validDates = allDates.filter((date: string) => date <= todayStr);
+      
+      // If there are no valid dates, return zero streak
+      if (validDates.length === 0) {
+        return { currentStreak: 0, longestStreak: 0, lastEntryDate: null };
+      }
+      
+      // Sort valid dates in descending order (newest first)
+      const sortedDates = [...validDates].sort((a: string, b: string) => b.localeCompare(a));
       const lastEntryDate = sortedDates[0];
       
       // Calculate current streak
       let currentStreak = 0;
       
       // Check if the user has an entry for today
-      const hasEntryToday = allDates.includes(todayStr);
+      const hasEntryToday = validDates.includes(todayStr);
       
       if (hasEntryToday) {
         // Start with today's entry
@@ -1003,7 +1012,7 @@ export class PostgresStorage implements IStorage {
           const previousDayStr = checkDate.toISOString().split('T')[0];
           
           // If there's an entry for the previous day, increment streak
-          if (allDates.includes(previousDayStr)) {
+          if (validDates.includes(previousDayStr)) {
             currentStreak++;
           } else {
             // Break the loop when we find a day without an entry
@@ -1028,7 +1037,7 @@ export class PostgresStorage implements IStorage {
             const previousDayStr = checkDate.toISOString().split('T')[0];
             
             // If there's an entry for the previous day, increment streak
-            if (allDates.includes(previousDayStr)) {
+            if (validDates.includes(previousDayStr)) {
               currentStreak++;
             } else {
               // Break the loop when we find a day without an entry
@@ -1044,9 +1053,9 @@ export class PostgresStorage implements IStorage {
       // Calculate longest streak
       let longestStreak = 0;
       
-      // Convert date strings to Date objects for easier manipulation
-      const dateObjects = allDates.map(dateStr => new Date(dateStr));
-      dateObjects.sort((a, b) => a.getTime() - b.getTime());
+      // Convert valid date strings to Date objects for easier manipulation
+      const dateObjects = validDates.map((dateStr: string) => new Date(dateStr));
+      dateObjects.sort((a: Date, b: Date) => a.getTime() - b.getTime());
       
       // Only calculate longest streak if we have dates
       if (dateObjects.length > 0) {
