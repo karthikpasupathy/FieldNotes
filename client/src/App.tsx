@@ -10,6 +10,7 @@ import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
+import InstallPrompt from "@/components/InstallPrompt";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           {/* Fallback to 404 */}
           <Route component={NotFound} />
         </Switch>
+        <InstallPrompt />
       </AuthProvider>
       <Toaster />
     </QueryClientProvider>

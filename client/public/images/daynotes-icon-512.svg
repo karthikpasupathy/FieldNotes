@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="#3b4e87"/>
+  
+  <!-- Notebook illustration -->
+  <rect x="120" y="100" width="272" height="340" rx="10" fill="#eaf0f9"/>
+  <rect x="140" y="120" width="232" height="300" rx="5" fill="white"/>
+  
+  <!-- Notebook lines -->
+  <line x1="160" y1="160" x2="350" y2="160" stroke="#e0e0e5" stroke-width="2"/>
+  <line x1="160" y1="200" x2="350" y2="200" stroke="#e0e0e5" stroke-width="2"/>
+  <line x1="160" y1="240" x2="350" y2="240" stroke="#e0e0e5" stroke-width="2"/>
+  <line x1="160" y1="280" x2="350" y2="280" stroke="#e0e0e5" stroke-width="2"/>
+  <line x1="160" y1="320" x2="350" y2="320" stroke="#e0e0e5" stroke-width="2"/>
+  <line x1="160" y1="360" x2="350" y2="360" stroke="#e0e0e5" stroke-width="2"/>
+  
+  <!-- Star/Sparkle (Moments) -->
+  <path d="M380 90L392 115L420 118L400 137L405 165L380 152L355 165L360 137L340 118L368 115L380 90Z" fill="#ffc53d"/>
+  
+  <!-- Simple pencil -->
+  <rect x="315" y="190" width="15" height="120" rx="2" transform="rotate(45 315 190)" fill="#3b4e87"/>
+  <polygon points="265,240 275,230 285,240 275,250" fill="#ffc53d"/>
+</svg>

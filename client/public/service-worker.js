@@ -1,58 +1,57 @@
-const CACHE_NAME = 'field-notes-v1';
-const urlsToCache = [
+// Service Worker for Daynotes PWA
+const CACHE_NAME = 'daynotes-cache-v1';
+const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/logo.svg'
+  '/images/daynotes-logo.png',
+  '/images/daynotes-icon-192.png',
+  '/images/daynotes-icon-512.png'
 ];
 
-// Install a service worker
-self.addEventListener('install', event => {
+// Install event - Cache basic assets
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then((cache) => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(ASSETS_TO_CACHE);
       })
   );
 });
 
-// Cache and return requests
-self.addEventListener('fetch', event => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
+// Activate event - Clean up old caches
+self.addEventListener('activate', (event) => {
+  const cacheAllowlist = [CACHE_NAME];
+
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheAllowlist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
+// Fetch event - Serve from cache, fallback to network
+self.addEventListener('fetch', (event) => {
+  // Only cache GET requests to our domain
+  if (
+    event.request.method !== 'GET' ||
+    !event.request.url.startsWith(self.location.origin) ||
+    event.request.url.includes('/api/')
+  ) {
+    return event.respondWith(fetch(event.request));
   }
 
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // For API requests, try network first, then fall back to cache
-  if (event.request.url.includes('/api/')) {
-    const fetchRequest = fetch(event.request).then(response => {
-      // If we got a valid response, clone and cache it
-      if (response && response.status === 200) {
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
-      }
-      return response;
-    }).catch(() => {
-      // If network fails, try to get from cache
-      return caches.match(event.request);
-    });
-
-    event.respondWith(fetchRequest);
-    return;
-  }
-
-  // For other requests, try the cache first, then fall back to network
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
+      .then((response) => {
+        // Return cached response if found
         if (response) {
           return response;
         }
@@ -60,37 +59,25 @@ self.addEventListener('fetch', event => {
         // Clone the request as it can only be used once
         const fetchRequest = event.request.clone();
 
-        return fetch(fetchRequest).then(response => {
-          // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        // Try to fetch from network
+        return fetch(fetchRequest).then(
+          (response) => {
+            // If response is invalid or is a cors request, just return it
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response as it can only be used once
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
             return response;
           }
-
-          // Clone the response as it can only be used once
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-
-          return response;
-        });
+        );
       })
-  );
-});
-
-// Update a service worker
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
   );
 });
