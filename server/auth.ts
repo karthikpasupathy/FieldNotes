@@ -6,7 +6,6 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { sendPasswordResetEmail, sendWelcomeEmail } from "./email";
 
 declare global {
   namespace Express {
@@ -120,19 +119,6 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
-      // Send welcome email (non-blocking)
-      sendWelcomeEmail(user.email, user.username)
-        .then(success => {
-          if (success) {
-            console.log(`Welcome email sent to ${user.email}`);
-          } else {
-            console.warn(`Failed to send welcome email to ${user.email}`);
-          }
-        })
-        .catch(err => {
-          console.error('Error sending welcome email:', err);
-        });
-
       // Log the user in
       req.login(user, (err) => {
         if (err) return next(err);
@@ -208,22 +194,12 @@ export function setupAuth(app: Express) {
       // Update user with reset token
       await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
       
-      // Send password reset email
-      sendPasswordResetEmail(user.email, resetToken, user.id)
-        .then(success => {
-          if (success) {
-            console.log(`Password reset email sent to ${user.email}`);
-          } else {
-            console.warn(`Failed to send password reset email to ${user.email}`);
-          }
-        })
-        .catch(err => {
-          console.error('Error sending password reset email:', err);
-        });
-      
-      // Always return the same message for security
+      // In a real app, you would send an email with the reset link
+      // For demo purposes, simply return the token
       res.status(200).json({
-        message: "If the email exists, a reset link has been sent"
+        message: "Password reset token generated",
+        resetToken,
+        // In production, don't return the token in the response
       });
     } catch (error) {
       next(error);

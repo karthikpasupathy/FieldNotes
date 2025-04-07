@@ -10,7 +10,6 @@ import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
 import { pool } from "./db";
-import { sendMarketingEmailToUsers } from "./admin-email";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -618,9 +617,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch active user list" });
     }
   });
-  
-  // Admin marketing email endpoint
-  app.post("/api/admin-send-marketing", isAdmin, sendMarketingEmailToUsers);
 
   // Moments feature API endpoints
   app.post("/api/moments/:noteId", isAuthenticated, async (req, res) => {

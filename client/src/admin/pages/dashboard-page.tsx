@@ -4,9 +4,6 @@ import { getAdminQueryFn } from "@/admin/lib/admin-query-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { 
   Loader2, 
   Users, 
@@ -14,11 +11,7 @@ import {
   LogOut, 
   Mail,
   User,
-  Calendar,
-  Plus,
-  X,
-  Send,
-  Brain
+  Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { 
@@ -158,9 +151,6 @@ function ActiveUsersList() {
 export default function AdminDashboardPage() {
   const [, navigate] = useLocation();
   const { logout } = useAdminAuth();
-  const [features, setFeatures] = useState<string[]>([""]);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const { toast } = useToast();
   
   const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin-stats"],
@@ -170,74 +160,6 @@ export default function AdminDashboardPage() {
   const handleLogout = async () => {
     await logout();
     navigate("/admin-login");
-  };
-  
-  const addFeature = () => {
-    setFeatures([...features, ""]);
-  };
-  
-  const removeFeature = (index: number) => {
-    if (features.length > 1) {
-      const newFeatures = [...features];
-      newFeatures.splice(index, 1);
-      setFeatures(newFeatures);
-    }
-  };
-  
-  const updateFeature = (index: number, value: string) => {
-    const newFeatures = [...features];
-    newFeatures[index] = value;
-    setFeatures(newFeatures);
-  };
-  
-  const sendMarketingEmail = async () => {
-    // Filter out empty features
-    const nonEmptyFeatures = features.filter(feature => feature.trim() !== "");
-    
-    if (nonEmptyFeatures.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add at least one feature to include in the email",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setSendingEmail(true);
-      
-      const response = await fetch("/api/admin-send-marketing", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ features: nonEmptyFeatures })
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to send marketing email");
-      }
-      
-      const result = await response.json();
-      
-      toast({
-        title: "Success",
-        description: result.message,
-        variant: "default"
-      });
-      
-      // Reset form
-      setFeatures([""]);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "An error occurred while sending email",
-        variant: "destructive"
-      });
-    } finally {
-      setSendingEmail(false);
-    }
   };
 
   if (isLoading) {
@@ -292,77 +214,6 @@ export default function AdminDashboardPage() {
           </CardHeader>
         </Card>
       </div>
-      
-      {/* Marketing Email Card */}
-      <Card className="mb-8">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Marketing Email</CardTitle>
-            <Mail className="h-5 w-5 text-primary" />
-          </div>
-          <CardDescription>
-            Send announcement emails to all registered users about new features
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Features to Highlight:</h3>
-              <p className="text-sm text-muted-foreground">
-                Add bullet points for each feature to highlight in the email
-              </p>
-              
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={feature}
-                    onChange={(e) => updateFeature(index, e.target.value)}
-                    placeholder="Enter a feature or announcement"
-                    className="flex-1"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => removeFeature(index)}
-                    disabled={features.length <= 1}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={addFeature} 
-                className="mt-2"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Feature
-              </Button>
-            </div>
-            
-            <div className="flex justify-end">
-              <Button 
-                onClick={sendMarketingEmail} 
-                disabled={sendingEmail || features.every(f => f.trim() === "")}
-              >
-                {sendingEmail ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Send to All Users
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
       
       <Tabs defaultValue="users">
         <TabsList className="mb-4">
