@@ -173,8 +173,7 @@ export default function NotesList({
                       </p>
                       {note.isMoment && (
                         <span className="ml-2 text-xs bg-yellow-300 text-yellow-800 px-2 py-0.5 rounded-full flex items-center font-semibold">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          Special Moment
+                          <Sparkles className="h-3 w-3 mr-1" />Moment
                         </span>
                       )}
                     </div>
