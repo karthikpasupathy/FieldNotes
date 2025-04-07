@@ -1,3 +1,4 @@
+
 // Service Worker for Daynotes PWA
 // This version number should be updated with each deployment
 const CACHE_NAME = 'daynotes-cache-v4';
@@ -25,7 +26,6 @@ function notifyClientsOfUpdate() {
   
   self.clients.matchAll({ type: 'window' }).then(clients => {
     if (clients && clients.length) {
-      // Notify each client of the update
       clients.forEach(client => {
         client.postMessage({ 
           type: 'APP_UPDATED',
@@ -35,11 +35,8 @@ function notifyClientsOfUpdate() {
         });
       });
       
-      // Set flag to avoid duplicate notifications
       updateNotificationSent = true;
       
-      // Store in IndexedDB that we've sent notification
-      // This helps track across service worker instances
       self.indexedDB.open('daynotes-sw-state', 1).onsuccess = function(event) {
         const db = event.target.result;
         if (!db.objectStoreNames.contains('state')) {
@@ -61,9 +58,6 @@ function notifyClientsOfUpdate() {
 // Install event - Cache basic assets
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing new worker version:', CACHE_NAME);
-  
-  // We don't skipWaiting() automatically anymore - this will be triggered
-  // when the user clicks "Refresh Now" in the update notification
   
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -107,16 +101,13 @@ self.addEventListener('message', (event) => {
   console.log('[Service Worker] Received message:', event.data);
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    // When user clicks "Refresh Now", we'll skip waiting and activate the new worker
     console.log('[Service Worker] Skipping waiting phase and activating now');
     self.skipWaiting();
   }
   
   if (event.data && event.data.type === 'CHECK_UPDATE_STATUS') {
-    // Client is asking if there was an update
     console.log('[Service Worker] Client requested update status check');
     
-    // Try to notify this specific client if we're a new version
     event.waitUntil(
       self.clients.matchAll().then(clients => {
         const client = clients.find(c => c.id === event.source.id);
@@ -133,8 +124,6 @@ self.addEventListener('message', (event) => {
   }
   
   if (event.data && event.data.type === 'BROADCAST_UPDATE') {
-    // A client wants us to broadcast update message to all clients
-    // This is especially important for mobile PWAs
     console.log('[Service Worker] Broadcasting update to all clients');
     
     event.waitUntil(
@@ -175,34 +164,27 @@ self.addEventListener('fetch', (event) => {
   if (isRefreshRequest) {
     console.log('[Service Worker] Network-first for refresh request:', url.pathname);
     
-    // If this is a refresh request, try network first, fall back to cache
     event.respondWith(
       fetch(event.request).catch(() => {
         return caches.match(event.request);
       })
     );
   } else {
-    // Normal cache-first strategy for regular requests
     event.respondWith(
       caches.match(event.request)
         .then((response) => {
-          // Return cached response if found
           if (response) {
             return response;
           }
 
-          // Clone the request as it can only be used once
           const fetchRequest = event.request.clone();
 
-          // Try to fetch from network
           return fetch(fetchRequest).then(
             (response) => {
-              // If response is invalid or is a cors request, just return it
               if (!response || response.status !== 200 || response.type !== 'basic') {
                 return response;
               }
 
-              // Clone the response as it can only be used once
               const responseToCache = response.clone();
 
               caches.open(CACHE_NAME)
