@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ArrowLeft, Download } from "lucide-react";
 
-export default function ProfilePage(): React.JSX.Element {
+export default function ProfilePage() {
   const { user, isLoading } = useAuth();
   const [_, navigate] = useLocation();
 
@@ -19,12 +19,7 @@ export default function ProfilePage(): React.JSX.Element {
 
   if (!user) {
     navigate("/auth");
-    // Return a loading indicator instead of null since we need to return an Element
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return null;
   }
 
   const getInitials = () => {

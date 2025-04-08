@@ -13,7 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Note } from "@shared/schema";
 import ReactMarkdown from "react-markdown";
 
-export default function MomentsPage(): React.JSX.Element {
+export default function MomentsPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [location] = useLocation();

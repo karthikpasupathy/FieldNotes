@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parse, addDays, subDays } from "date-fns";
@@ -28,8 +28,7 @@ import { type Note } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
-// Always ensure this component returns an Element (not null)
-export default function Home(): React.JSX.Element {
+export default function Home() {
   const [, setLocation] = useLocation();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isPeriodAnalysisOpen, setIsPeriodAnalysisOpen] = useState(false);
