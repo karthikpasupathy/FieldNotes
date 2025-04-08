@@ -30,14 +30,14 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container max-w-5xl py-8">
+    <div className="container max-w-4xl py-6 md:py-8 px-4 md:px-8 mx-auto">
       <Button variant="ghost" onClick={() => navigate("/")} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Notes
       </Button>
 
-      <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
-        <Card>
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-[1fr_2fr] lg:max-w-4xl lg:mx-auto">
+        <Card className="w-full max-w-md mx-auto md:max-w-none">
           <CardHeader className="text-center">
             <Avatar className="h-24 w-24 mx-auto border-2 border-primary/20">
               <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getInitials()}`} alt={user.username} />
@@ -60,7 +60,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
+        <div className="space-y-6 w-full max-w-md mx-auto md:max-w-none">
           <Card>
             <CardHeader>
               <CardTitle>Account Settings</CardTitle>
