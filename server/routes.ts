@@ -10,6 +10,7 @@ import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
 import { db, primaryPool } from "./db";
+import * as clerk from "@clerk/clerk-sdk-node";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -745,6 +746,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error analyzing moments:", error);
       res.status(500).json({ message: "Failed to analyze moments" });
+    }
+  });
+
+  // Clerk integration routes
+  app.get("/api/clerk/user", async (req, res) => {
+    try {
+      // Get the Clerk JWT from the Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized: Missing or invalid token" });
+      }
+      
+      const token = authHeader.substring(7); // Remove "Bearer " prefix
+      
+      try {
+        // Verify the token with Clerk
+        const jwtPayload = await clerk.verifyToken(token);
+        
+        if (!jwtPayload || !jwtPayload.sub) {
+          return res.status(401).json({ message: "Unauthorized: Invalid token" });
+        }
+        
+        const clerkUserId = jwtPayload.sub;
+        
+        // Find user in our database by clerkId
+        const user = await primaryPool.query(`
+          SELECT * FROM users WHERE clerk_id = $1
+        `, [clerkUserId]);
+        
+        if (user.rows.length === 0) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        // Return user data
+        res.json(user.rows[0]);
+      } catch (error) {
+        console.error("Error verifying Clerk token:", error);
+        return res.status(401).json({ message: "Unauthorized: Invalid token" });
+      }
+    } catch (error) {
+      console.error("Error fetching Clerk user:", error);
+      res.status(500).json({ message: "Failed to fetch user data" });
+    }
+  });
+  
+  app.post("/api/clerk/link-account", async (req, res) => {
+    try {
+      const { username, password, clerkUserId } = req.body;
+      
+      if (!username || !password || !clerkUserId) {
+        return res.status(400).json({ message: "Username, password, and Clerk user ID are required" });
+      }
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify password
+      const { comparePasswords } = await import("./auth");
+      const isPasswordValid = await comparePasswords(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid password" });
+      }
+      
+      // Update the user record with the Clerk ID
+      await primaryPool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS clerk_id TEXT;
+      `);
+      
+      await primaryPool.query(`
+        UPDATE users SET clerk_id = $1 WHERE id = $2
+      `, [clerkUserId, user.id]);
+      
+      // Return the updated user
+      const updatedUser = await primaryPool.query(`
+        SELECT * FROM users WHERE id = $1
+      `, [user.id]);
+      
+      res.json(updatedUser.rows[0]);
+    } catch (error) {
+      console.error("Error linking Clerk account:", error);
+      res.status(500).json({ message: "Failed to link account" });
     }
   });
 
