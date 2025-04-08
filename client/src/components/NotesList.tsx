@@ -5,17 +5,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { Link } from "wouter";
+import { deleteNote, toggleMoment, invalidateEncryptedQueries } from "@/lib/secureApi";
+import { useAuth } from "@/hooks/use-auth";
+import { isEncryptionEnabled } from "@/lib/encryption";
 
 interface NotesListProps {
   notes: Note[];
   date: string;
   isLoading: boolean;
   displayDate: string;
-  analysis?: string;
+  analysis?: string | null;
   isAnalysisLoading?: boolean;
   onRegenerateAnalysis?: () => void;
 }
@@ -30,6 +33,7 @@ export default function NotesList({
   onRegenerateAnalysis
 }: NotesListProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Format the note timestamp for display
   const formatNoteTime = (timestamp: Date | string) => {
@@ -37,16 +41,15 @@ export default function NotesList({
     return format(date, "h:mm a");
   };
   
-  // Delete note mutation
+  // Delete note mutation using the secure API
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: number) => {
-      await apiRequest("DELETE", `/api/notes/${noteId}`);
+      // Use the secure API to delete the note
+      return deleteNote(noteId, user?.id || 0);
     },
     onSuccess: () => {
-      // Refresh the notes list
-      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/recent-days'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
+      // Refresh the notes list using the helper that handles encryption
+      invalidateEncryptedQueries(date);
       
       toast({
         title: "Note Deleted",
@@ -62,26 +65,15 @@ export default function NotesList({
     }
   });
   
-  // Toggle moment status mutation
+  // Toggle moment status mutation using the secure API
   const toggleMomentMutation = useMutation({
     mutationFn: async (noteId: number) => {
-      const response = await fetch(`/api/moments/${noteId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to toggle moment status");
-      }
-      
-      return response.json();
+      // Use the secure API to toggle moment status
+      return toggleMoment(noteId);
     },
     onSuccess: (data) => {
       // Refresh the notes list and moments
-      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
+      invalidateEncryptedQueries(date);
       queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
       
       // Use the isNowMoment property from the response

@@ -12,7 +12,8 @@ import {
   User as UserIcon,
   BrainCircuit,
   CalendarRange,
-  Sparkles
+  Sparkles,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,10 +24,16 @@ import UserProfile from "@/components/UserProfile";
 import PeriodAnalysis from "@/components/PeriodAnalysis";
 import { StreakBar } from "@/components/StreakBar";
 import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { type Note } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { 
+  fetchAndDecryptNotes, 
+  fetchAndDecryptAnalysis,
+  saveEncryptedAnalysis
+} from "@/lib/secureApi";
+import { isEncryptionEnabled } from "@/lib/encryption";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -62,33 +69,36 @@ export default function Home() {
     parse(params.date, "yyyy-MM-dd", new Date()) : 
     new Date();
 
-  // Fetch notes for the current date
+  // Fetch and decrypt notes for the current date using secure API
   const { data: notes = [], isLoading } = useQuery<Note[]>({
     queryKey: [`/api/notes/${currentDate}`],
+    queryFn: async () => fetchAndDecryptNotes(currentDate)
   });
 
-  // Fetch recent days with note counts
+  // Fetch recent days with note counts (no decryption needed)
   const { data: recentDays = [] } = useQuery<{ date: string; count: number }[]>({
     queryKey: ['/api/recent-days'],
   });
   
-  // Fetch dates with notes for calendar indicators
+  // Fetch dates with notes for calendar indicators (no decryption needed)
   const { data: datesWithNotes = [] } = useQuery<string[]>({
     queryKey: ['/api/dates-with-notes'],
   });
   
-  // Query for AI analysis of notes
+  // Query for AI analysis of notes using secure API for decryption
   const { 
     data: analysisData, 
     isLoading: isAnalysisLoading, 
     refetch: refetchAnalysis,
     isFetching: isAnalysisFetching 
-  } = useQuery<{ analysis: string }>({
+  } = useQuery<string | null>({
     queryKey: [`/api/analyze/${currentDate}`],
+    queryFn: async () => fetchAndDecryptAnalysis(currentDate, user?.id || 0),
     enabled: false, // Don't run this query automatically
+    staleTime: Infinity // Analysis doesn't change unless explicitly requested
   });
   
-  // Function to force regenerate analysis
+  // Function to force regenerate analysis with encryption
   const regenerateAnalysis = async () => {
     try {
       toast({
@@ -96,7 +106,15 @@ export default function Home() {
         description: "Using AI to reanalyze your notes for the day..."
       });
       
-      // Make a direct fetch with regenerate=true parameter
+      // Show encryption indicator if enabled
+      if (user?.encryptionEnabled) {
+        toast({
+          title: "Encryption active",
+          description: "Your notes will be analyzed securely with end-to-end encryption"
+        });
+      }
+      
+      // Use the secure API to fetch and save encrypted analysis 
       const response = await fetch(`/api/analyze/${currentDate}?regenerate=true`);
       if (!response.ok) {
         throw new Error('Failed to regenerate analysis');
@@ -104,8 +122,16 @@ export default function Home() {
       
       const data = await response.json();
       
-      // Update the query cache with the new analysis
-      queryClient.setQueryData([`/api/analyze/${currentDate}`], data);
+      // If encryption is enabled, we need to encrypt the analysis before caching it
+      if (user?.encryptionEnabled && isEncryptionEnabled()) {
+        await saveEncryptedAnalysis(currentDate, data.analysis, user.id);
+      } else {
+        // For unencrypted use, just update the cache directly
+        queryClient.setQueryData([`/api/analyze/${currentDate}`], data.analysis);
+      }
+      
+      // Trigger a refetch to get the properly encrypted data
+      await refetchAnalysis();
       
       toast({
         title: "Analysis regenerated",
@@ -373,7 +399,7 @@ export default function Home() {
                 date={currentDate} 
                 isLoading={isLoading} 
                 displayDate={formatDateForDisplay(currentDateObj)}
-                analysis={analysisData?.analysis}
+                analysis={analysisData}
                 isAnalysisLoading={isAnalysisFetching}
                 onRegenerateAnalysis={regenerateAnalysis}
               />

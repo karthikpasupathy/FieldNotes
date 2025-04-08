@@ -2,8 +2,11 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { createEncryptedNote, invalidateEncryptedQueries } from "@/lib/secureApi";
+import { Lock } from "lucide-react";
 
 interface NoteInputProps {
   date: string;
@@ -13,25 +16,27 @@ export default function NoteInput({ date }: NoteInputProps) {
   const [content, setContent] = useState("");
   const [charCount, setCharCount] = useState(0);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const MAX_CHARS = 280;
   
   const createNoteMutation = useMutation({
     mutationFn: async (noteContent: string) => {
-      const response = await apiRequest("POST", "/api/notes", {
+      // Use the secure API to create an encrypted note if encryption is enabled
+      return createEncryptedNote({
         content: noteContent,
-        date
+        date,
+        userId: user?.id || 0,
+        isMoment: false
       });
-      return response.json();
     },
     onSuccess: () => {
       // Reset the form
       setContent("");
       setCharCount(0);
       
-      // Refresh the notes list
-      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/recent-days'] });
+      // Refresh the notes list using the invalidate helper
+      invalidateEncryptedQueries(date);
       
       toast({
         title: "Note Added",
