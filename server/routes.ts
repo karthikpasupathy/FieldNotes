@@ -9,7 +9,7 @@ import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
-import { pool } from "./db";
+import { db, primaryPool } from "./db";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Attempt to alter the notes table to add is_moment column if it doesn't exist
   try {
-    await pool.query(`
+    await primaryPool.query(`
       ALTER TABLE notes 
       ADD COLUMN IF NOT EXISTS is_moment BOOLEAN DEFAULT FALSE
     `);
@@ -563,14 +563,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total number of notes
       const totalNotes = await storage.getTotalNotes();
       
+      // Get database status from the db interface
+      const dbStatus = (db as any).getStatus ? (db as any).getStatus() : { status: 'unknown' };
+      
       res.json({
         totalUsers,
         activeUsers,
-        totalNotes
+        totalNotes,
+        database: dbStatus
       });
     } catch (error) {
       console.error("Error fetching admin statistics:", error);
       res.status(500).json({ message: "Failed to fetch admin statistics" });
+    }
+  });
+  
+  // Database health and status endpoint (admin only)
+  app.get("/api/admin-db-status", isAdmin, async (req, res) => {
+    try {
+      // Get database status from the db interface
+      const dbStatus = (db as any).getStatus ? (db as any).getStatus() : { status: 'unknown' };
+      
+      res.json({
+        status: dbStatus,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching database status:", error);
+      res.status(500).json({ message: "Failed to retrieve database status" });
+    }
+  });
+  
+  // Force database sync (admin only)
+  app.post("/api/admin-sync-db", isAdmin, async (req, res) => {
+    try {
+      if (!(db as any).syncNow) {
+        return res.status(400).json({ message: "Database sync not supported" });
+      }
+      
+      const result = await (db as any).syncNow();
+      res.json(result);
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error syncing databases:", error);
+      res.status(500).json({ message: "Failed to sync databases", error: error.message });
+    }
+  });
+  
+  // Force database failover for testing (admin only)
+  app.post("/api/admin-force-failover", isAdmin, async (req, res) => {
+    try {
+      const { target } = req.body;
+      
+      if (!target || (target !== 'primary' && target !== 'secondary')) {
+        return res.status(400).json({ message: "Invalid target. Must be 'primary' or 'secondary'" });
+      }
+      
+      if (!(db as any).forceFailover) {
+        return res.status(400).json({ message: "Failover functionality not supported" });
+      }
+      
+      (db as any).forceFailover(target);
+      
+      res.json({ 
+        message: `Manual failover to ${target} database initiated`,
+        newStatus: (db as any).getStatus()
+      });
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error forcing failover:", error);
+      res.status(500).json({ message: "Failed to force failover", error: error.message });
     }
   });
   

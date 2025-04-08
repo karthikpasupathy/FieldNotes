@@ -13,7 +13,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { Pool } from "pg";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db"; // Import pool from db.ts to ensure we use the same pool instance
+import { primaryPool } from "./db"; // Import primaryPool from db.ts to ensure we use the same connection
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -461,7 +461,7 @@ export class PostgresStorage implements IStorage {
     // Set up PostgreSQL session store with error handling
     try {
       this.sessionStore = new PostgresSessionStore({
-        pool,
+        pool: primaryPool,
         createTableIfMissing: true,
         // Error handling for session store
         errorLog: (error) => {
@@ -482,7 +482,7 @@ export class PostgresStorage implements IStorage {
   // Helper method to execute database queries with error handling
   private async executeQuery(query: string, params: any[] = []): Promise<any> {
     try {
-      return await pool.query(query, params);
+      return await primaryPool.query(query, params);
     } catch (error) {
       console.error(`[DB ERROR] Query failed: ${query.substring(0, 100)}...`, error);
       throw error;
