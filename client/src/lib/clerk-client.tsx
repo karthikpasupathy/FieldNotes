@@ -14,13 +14,9 @@ let clerk: Clerk | null = null;
 // Get singleton Clerk instance
 function getClerk() {
   if (!clerk) {
-    // For frontend, we need to use import.meta.env which is Vite's way to access environment variables
-    // These would be explicitly set in the Replit deployment
-    const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string || '';
-    
-    if (!publishableKey) {
-      console.error('Clerk publishable key is missing! Please set CLERK_PUBLISHABLE_KEY in the environment.');
-    }
+    // Use the publishable key directly
+    // This is the test key you provided (pk_test_c3RhcnRsZWQtb3Bvc3N1bS0yMS5jbGVyay5hY2NvdW50cy5kZXYk)
+    const publishableKey = 'pk_test_c3RhcnRsZWQtb3Bvc3N1bS0yMS5jbGVyay5hY2NvdW50cy5kZXYk';
     
     clerk = new Clerk(publishableKey);
     clerk.load({
