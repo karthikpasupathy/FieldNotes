@@ -65,30 +65,6 @@ if ('serviceWorker' in navigator) {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[PWA] New version available and installed');
               
-              // Display toast notification in addition to the banner component
-              // This gives users multiple ways to learn about updates
-              toast({
-                title: "App update available",
-                description: "A new version of Daynotes is ready",
-                action: (
-                  <button
-                    onClick={() => {
-                      // Tell service worker to skip waiting and take control
-                      newWorker.postMessage({ type: 'SKIP_WAITING' });
-                      // Use cacheBusting parameter to ensure fresh content
-                      window.location.href = window.location.href + 
-                        (window.location.href.includes('?') ? '&' : '?') + 
-                        'refresh=' + Date.now();
-                    }}
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Update Now
-                  </button>
-                ),
-                duration: 60000, // Keep notification visible for 1 minute
-              });
-              
               // Mobile PWA specific - try to broadcast the update to all clients
               // This ensures our UpdateNotification component gets the message
               navigator.serviceWorker.controller?.postMessage({ 
@@ -134,16 +110,8 @@ if ('serviceWorker' in navigator) {
       // Only show notification if:
       // 1. This is a genuinely new version
       // 2. We haven't shown the notification for this version yet
-      if (lastKnownVersion !== event.data.version && !notificationShownForVersion) {
-        // The UpdateNotification component will handle showing the banner
-        // but we add this toast as a backup mechanism
-        toast({
-          title: "Update Available",
-          description: "Refresh to get the latest version of Daynotes",
-          variant: "default",
-          duration: 10000, // 10 seconds
-        });
-      }
+      // The UpdateNotification component will handle showing the banner
+      // No toast needed as the banner is more reliable and visible
     }
   });
 }

@@ -1,8 +1,8 @@
 // Service Worker for Daynotes PWA
 // This version number should be updated with each deployment
-const CACHE_NAME = 'daynotes-cache-v4';
+const CACHE_NAME = 'daynotes-cache-v5';
 // Deployment version should be a unique identifier that changes with each deployment
-const DEPLOYMENT_VERSION = '2025-04-06-1';
+const DEPLOYMENT_VERSION = '2025-04-08-1';
 const UPDATE_NOTIFICATION_SENT = 'daynotes-update-notification-sent';
 const ASSETS_TO_CACHE = [
   '/',
@@ -155,7 +155,7 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch event - Modified strategy for better updates
+// Fetch event - Enhanced strategy for better updates and reliability
 self.addEventListener('fetch', (event) => {
   // Handle refresh query parameter for cache busting
   const url = new URL(event.request.url);
@@ -171,11 +171,12 @@ self.addEventListener('fetch', (event) => {
   }
   
   // For normal app resources, use a network-first strategy if it's a refresh request
-  // otherwise use a cache-first strategy
+  // otherwise use a cache-first strategy with network fallback
   if (isRefreshRequest) {
     console.log('[Service Worker] Network-first for refresh request:', url.pathname);
     
     // If this is a refresh request, try network first, fall back to cache
+    // This ensures a hard refresh that bypasses cache
     event.respondWith(
       fetch(event.request).catch(() => {
         return caches.match(event.request);
@@ -212,7 +213,11 @@ self.addEventListener('fetch', (event) => {
 
               return response;
             }
-          );
+          ).catch(error => {
+            console.error('[Service Worker] Fetch failed:', error);
+            // If fetch fails, try to return the cache as a last resort
+            return caches.match('/index.html');
+          });
         })
     );
   }
