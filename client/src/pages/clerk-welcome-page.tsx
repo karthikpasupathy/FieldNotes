@@ -1,116 +1,158 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useClerkIntegration } from "@/lib/clerk-client";
-import { ClerkAccountLinking } from "@/components/ClerkAccountLinking";
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useClerkIntegration } from "@/lib/clerk-client";
+import { Button } from "@/components/ui/button";
+import { Link, Redirect } from "wouter";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ClerkAccountLinking } from "@/components/ClerkAccountLinking";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
 export default function ClerkWelcomePage() {
-  const { isLoading, hasLinkedAccount, user, openSignIn, openSignUp } = useClerkIntegration();
-  const [activeTab, setActiveTab] = useState<string>("welcome");
-  const [, setLocation] = useLocation();
+  const { user, isLoading, hasLinkedAccount, openSignIn, openSignUp } = useClerkIntegration();
+  const [activeTab, setActiveTab] = useState<string>("existing");
 
-  // Once the user has linked their account, redirect them to the home page
-  if (hasLinkedAccount && user) {
-    setLocation('/');
-    return null;
+  // If user is already authenticated and linked to a database user, redirect to home
+  if (!isLoading && user) {
+    return <Redirect to="/" />;
   }
 
   return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Welcome to Daynotes</CardTitle>
-          <CardDescription className="text-lg">
-            Your personal daily journal with AI-powered insights
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="welcome">Welcome</TabsTrigger>
-              <TabsTrigger value="link">Link Existing Account</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="welcome" className="mt-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">New to Daynotes?</h3>
-                  <p className="text-muted-foreground">
-                    Daynotes helps you capture your daily thoughts and discover insights over time.
-                    With our AI-powered analysis, you'll gain unique perspectives on your notes.
-                  </p>
-                  <Button 
-                    onClick={openSignUp} 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Sign Up
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">Already have a Clerk account?</h3>
-                  <p className="text-muted-foreground">
-                    If you already have an account through Clerk, you can sign in with
-                    your existing credentials. You'll then be able to link to your Daynotes account.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={openSignIn}
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Sign In
-                  </Button>
-                </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Welcome content */}
+        <div className="flex flex-col justify-center">
+          <h1 className="text-4xl font-bold tracking-tight text-primary mb-4">
+            Welcome to Daynotes
+          </h1>
+          <p className="text-lg text-slate-600 mb-6">
+            Your daily journaling app with AI-powered insights
+          </p>
+          <div className="space-y-4 text-slate-700">
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <span className="text-primary text-xl">✓</span>
               </div>
-
-              <div className="border-t pt-6">
-                <h3 className="text-xl font-semibold mb-4">Why use Daynotes?</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-medium mb-2">Daily Reflections</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Quickly capture your thoughts in a structured daily format.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-medium mb-2">AI Analysis</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Get intelligent insights from weekly and monthly patterns.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-medium mb-2">Highlight Moments</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Star special entries and analyze what makes them meaningful.
-                    </p>
-                  </div>
-                </div>
+              <div>
+                <h3 className="font-medium">Daily entries</h3>
+                <p className="text-sm text-slate-500">
+                  Capture your thoughts in bite-sized notes, organized by day
+                </p>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="link" className="mt-6">
-              <ClerkAccountLinking onSuccess={() => setLocation('/')} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between text-sm text-muted-foreground">
-          <span>© {new Date().getFullYear()} Daynotes</span>
-          <span>Powered by OpenAI</span>
-        </CardFooter>
-      </Card>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <span className="text-primary text-xl">✓</span>
+              </div>
+              <div>
+                <h3 className="font-medium">AI Analysis</h3>
+                <p className="text-sm text-slate-500">
+                  Get insights about your mood, mindset, and patterns
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <span className="text-primary text-xl">✓</span>
+              </div>
+              <div>
+                <h3 className="font-medium">Track special moments</h3>
+                <p className="text-sm text-slate-500">
+                  Mark important entries and discover patterns
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Authentication card */}
+        <div>
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-2xl">Sign in with Clerk</CardTitle>
+              <CardDescription>
+                We've integrated with Clerk for secure, modern authentication
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : hasLinkedAccount ? (
+                <div className="text-center py-4">
+                  <p className="mb-4 text-green-600">
+                    Your account is successfully linked!
+                  </p>
+                  <Link href="/">
+                    <Button size="lg">Go to Dashboard</Button>
+                  </Link>
+                </div>
+              ) : (
+                <Tabs
+                  defaultValue="existing"
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="existing">Existing User</TabsTrigger>
+                    <TabsTrigger value="new">New User</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="existing" className="space-y-4">
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600">
+                        Already have a Daynotes account? Link it with Clerk to
+                        continue using your existing data.
+                      </p>
+                      <ClerkAccountLinking />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="new" className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                      New to Daynotes? Create a new account with Clerk's secure
+                      authentication.
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <Button
+                        size="lg"
+                        variant="default"
+                        onClick={openSignUp}
+                        className="w-full"
+                      >
+                        Create Account
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={openSignIn}
+                        className="w-full"
+                      >
+                        Sign In
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-center border-t pt-6">
+              <p className="text-xs text-slate-500 text-center">
+                By signing in, you agree to our Terms of Service and Privacy
+                Policy. Your data is stored securely and you can export or delete
+                it anytime.
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

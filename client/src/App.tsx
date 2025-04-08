@@ -8,10 +8,10 @@ import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
-// Temporarily comment out Clerk imports to fix runtime errors in legacy mode
-// import ClerkWelcomePage from "@/pages/clerk-welcome-page";
-// import { ClerkApp, useClerkIntegration } from "@/lib/clerk-client";
-// import { ClerkProtectedRoute } from "./lib/clerk-protected-route";
+// Clerk imports are now ready
+import ClerkWelcomePage from "@/pages/clerk-welcome-page";
+import { ClerkApp, useClerkIntegration } from "@/lib/clerk-client";
+import { ClerkProtectedRoute } from "./lib/clerk-protected-route";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import InstallPrompt from "@/components/InstallPrompt";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -79,11 +79,43 @@ function LegacyApp() {
   );
 }
 
-// Main app with Clerk auth - temporarily disabled since we're in legacy mode
-// This function would be used when Clerk auth is enabled
+// Main app with Clerk auth 
 function ClerkAppContent() {
-  // We'll keep this as a stub/placeholder since we're not using Clerk right now
-  return null;
+  const today = new Date().toISOString().split('T')[0];
+  const { user, isLoading } = useClerkIntegration();
+  
+  return (
+    <>
+      <UpdateNotification />
+      <Switch>
+        {/* Root redirect to current day or welcome page */}
+        <Route path="/">
+          {() => {
+            if (isLoading) {
+              return (
+                <div className="flex items-center justify-center min-h-screen">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              );
+            }
+            return user ? <Redirect to={`/day/${today}`} /> : <Redirect to="/clerk-welcome" />;
+          }}
+        </Route>
+        
+        {/* Clerk Public Routes */}
+        <Route path="/clerk-welcome" component={ClerkWelcomePage} />
+        
+        {/* Clerk Protected Routes */}
+        <ClerkProtectedRoute path="/day/:date" component={Home} />
+        <ClerkProtectedRoute path="/profile" component={ProfilePage} />
+        <ClerkProtectedRoute path="/moments" component={MomentsPage} />
+        
+        {/* Fallback to 404 */}
+        <Route component={NotFound} />
+      </Switch>
+      <InstallPrompt />
+    </>
+  );
 }
 
 function App() {
@@ -93,8 +125,15 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* We're always using legacy mode for now until Clerk integration is fixed */}
-      <LegacyApp />
+      {isLegacyMode ? (
+        // Legacy mode with session-based auth
+        <LegacyApp />
+      ) : (
+        // Clerk auth mode
+        <ClerkApp>
+          <ClerkAppContent />
+        </ClerkApp>
+      )}
       <Toaster />
     </QueryClientProvider>
   );

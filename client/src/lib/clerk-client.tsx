@@ -5,6 +5,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from './queryClient';
 import { User } from '@shared/schema';
 
+// We'll use Clerk's built-in event system
+// See https://clerk.com/docs/reference/clerk/types/clerkevents for details
+
 // Initialize Clerk with our publishable key
 let clerk: Clerk | null = null;
 
@@ -36,28 +39,27 @@ function useClerkAuth() {
 
   useEffect(() => {
     const clerk = getClerk();
+    let unsubscribeFunc: () => void;
 
-    const unsubscribe = clerk.addListener((event) => {
-      if (event === 'load') {
-        setIsLoaded(true);
-        setIsSignedIn(!!clerk.user);
-        setUserId(clerk.user?.id || null);
-        setUser(clerk.user);
-      }
-      if (event === 'signIn') {
-        setIsSignedIn(true);
-        setUserId(clerk.user?.id || null);
-        setUser(clerk.user);
-      }
-      if (event === 'signOut') {
-        setIsSignedIn(false);
-        setUserId(null);
-        setUser(null);
-      }
+    // Set initial state
+    clerk.load().then(() => {
+      setIsLoaded(true);
+      setIsSignedIn(!!clerk.user);
+      setUserId(clerk.user?.id || null);
+      setUser(clerk.user || null);
+      
+      // Listen for auth state changes
+      unsubscribeFunc = clerk.addListener(({ user }) => {
+        setIsSignedIn(!!user);
+        setUserId(user?.id || null);
+        setUser(user || null);
+      });
     });
 
     return () => {
-      unsubscribe();
+      if (unsubscribeFunc) {
+        unsubscribeFunc();
+      }
     };
   }, []);
 

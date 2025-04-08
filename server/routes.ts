@@ -762,7 +762,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Verify the token with Clerk
-        const jwtPayload = await clerk.verifyToken(token);
+        const clerk = require('@clerk/clerk-sdk-node');
+        const jwtPayload = await clerk.verifyToken(token, {
+          secretKey: process.env.CLERK_SECRET_KEY,
+        });
         
         if (!jwtPayload || !jwtPayload.sub) {
           return res.status(401).json({ message: "Unauthorized: Invalid token" });
@@ -807,8 +810,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify password
-      const { comparePasswords } = await import("./auth");
-      const isPasswordValid = await comparePasswords(password, user.password);
+      // Import the auth module to access the comparePasswords function
+      const auth = await import("./auth");
+      const isPasswordValid = await auth.comparePasswords(password, user.password);
       
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid password" });
