@@ -230,4 +230,4 @@ export function setupAuth(app: Express) {
   });
 }
 
-export { hashPassword };
+// No exports needed as functions are defined directly in routes.ts

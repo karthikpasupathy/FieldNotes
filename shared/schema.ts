@@ -10,6 +10,11 @@ export const users = pgTable("users", {
   name: text("name"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  
+  // Encryption-related fields
+  encryptionSalt: text("encryption_salt"), // Salt used for key derivation
+  encryptionEnabled: boolean("encryption_enabled").default(false), // Whether this user has encryption enabled
+  encryptionVersion: text("encryption_version"), // To support future encryption upgrades
 });
 
 export const notes = pgTable("notes", {
@@ -37,6 +42,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   email: true,
   name: true,
+  encryptionSalt: true,
+  encryptionEnabled: true,
+  encryptionVersion: true,
 });
 
 export const insertNoteSchema = createInsertSchema(notes).pick({
