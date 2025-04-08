@@ -28,8 +28,6 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
-  // Encryption-related methods
-  updateUserEncryption(userId: number, enabled: boolean): Promise<User>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
   getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]>;
   getAllDates(userId?: number): Promise<string[]>;
@@ -119,11 +117,7 @@ export class MemStorage implements IStorage {
       id,
       name: insertUser.name || null,
       resetToken: null,
-      resetTokenExpiry: null,
-      // Explicitly set encryption fields to avoid TypeScript errors
-      encryptionSalt: insertUser.encryptionSalt || null,
-      encryptionEnabled: insertUser.encryptionEnabled || false, 
-      encryptionVersion: insertUser.encryptionVersion || null
+      resetTokenExpiry: null 
     };
     this.users.set(id, user);
     return user;
@@ -146,29 +140,6 @@ export class MemStorage implements IStorage {
       user.resetTokenExpiry = null;
       this.users.set(userId, user);
     }
-  }
-  
-  async updateUserEncryption(userId: number, enabled: boolean): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-    
-    // Update the encryption settings
-    user.encryptionEnabled = enabled;
-    
-    // If we're enabling encryption and there's no salt, generate one
-    if (enabled && !user.encryptionSalt) {
-      const { randomBytes } = await import('crypto');
-      user.encryptionSalt = randomBytes(16).toString('hex');
-    }
-    
-    // Set encryption version (for future compatibility)
-    user.encryptionVersion = 'v1';
-    
-    // Save the updated user
-    this.users.set(userId, user);
-    return user;
   }
 
   async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
@@ -562,22 +533,11 @@ export class PostgresStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const { username, password, email, name, encryptionSalt, encryptionEnabled, encryptionVersion } = user;
+    const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        `INSERT INTO users (
-          username, password, email, name, reset_token, reset_token_expiry, 
-          encryption_salt, encryption_enabled, encryption_version
-        ) VALUES ($1, $2, $3, $4, NULL, NULL, $5, $6, $7) RETURNING *`,
-        [
-          username, 
-          password, 
-          email, 
-          name || null, 
-          encryptionSalt || null, 
-          encryptionEnabled || false, 
-          encryptionVersion || null
-        ]
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+        [username, password, email, name || null]
       );
       return result.rows[0];
     } catch (error) {
@@ -607,47 +567,6 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error updating password for user ${userId}:`, error);
       throw new Error('Failed to update password. Please try again later.');
-    }
-  }
-  
-  async updateUserEncryption(userId: number, enabled: boolean): Promise<User> {
-    try {
-      // If we're enabling encryption, make sure the user has a salt
-      if (enabled) {
-        // First check if user already has a salt
-        const user = await this.getUser(userId);
-        
-        if (!user) {
-          throw new Error("User not found");
-        }
-        
-        let salt = user.encryptionSalt;
-        
-        // Generate a salt if one doesn't exist
-        if (!salt) {
-          const { randomBytes } = await import('crypto');
-          salt = randomBytes(16).toString('hex');
-        }
-        
-        // Update the user's encryption settings
-        const result = await this.executeQuery(
-          'UPDATE users SET encryption_enabled = $1, encryption_salt = $2, encryption_version = $3 WHERE id = $4 RETURNING *',
-          [enabled, salt, 'v1', userId]
-        );
-        
-        return result.rows[0];
-      } else {
-        // Just disable encryption
-        const result = await this.executeQuery(
-          'UPDATE users SET encryption_enabled = $1 WHERE id = $2 RETURNING *',
-          [enabled, userId]
-        );
-        
-        return result.rows[0];
-      }
-    } catch (error) {
-      console.error(`Error updating encryption settings for user ${userId}:`, error);
-      throw new Error('Failed to update encryption settings. Please try again later.');
     }
   }
 

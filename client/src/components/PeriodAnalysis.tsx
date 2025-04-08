@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDateForAPI } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,16 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, RefreshCw, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { Loader2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  fetchAndDecryptPeriodAnalysis, 
-  saveEncryptedPeriodAnalysis 
-} from "@/lib/secureApi";
-import { useAuth } from "@/hooks/use-auth";
-import { isEncryptionEnabled } from "@/lib/encryption";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type PeriodType = "week" | "month";
 
@@ -29,10 +22,8 @@ interface PeriodAnalysisProps {
 export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   const [activeTab, setActiveTab] = useState<PeriodType>("week");
   const [isOpen, setIsOpen] = useState(true);
-  const [hasInitialized, setHasInitialized] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { user } = useAuth();
 
   // Get the date ranges for week and month
   const weekStart = formatDateForAPI(startOfWeek(currentDate, { weekStartsOn: 1 }));
@@ -44,38 +35,26 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
   const weekRangeDisplay = `${format(parseISO(weekStart), 'MMM d')} - ${format(parseISO(weekEnd), 'MMM d, yyyy')}`;
   const monthRangeDisplay = format(parseISO(monthStart), 'MMMM yyyy');
 
-  // Query for weekly analysis with encryption support
+  // Query for weekly analysis
   const {
     data: weeklyAnalysis,
     isLoading: isWeeklyLoading,
     isFetching: isWeeklyFetching,
     refetch: refetchWeekly
-  } = useQuery<{ analysis: string } | null>({
+  } = useQuery<{ analysis: string }>({
     queryKey: ['/api/analyze-period', weekStart, weekEnd, 'week'],
-    queryFn: async () => fetchAndDecryptPeriodAnalysis({
-      startDate: weekStart,
-      endDate: weekEnd,
-      periodType: 'week'
-    }),
     enabled: false,
-    staleTime: Infinity // Period analysis doesn't change unless explicitly regenerated
   });
 
-  // Query for monthly analysis with encryption support
+  // Query for monthly analysis
   const {
     data: monthlyAnalysis,
     isLoading: isMonthlyLoading,
     isFetching: isMonthlyFetching,
     refetch: refetchMonthly
-  } = useQuery<{ analysis: string } | null>({
+  } = useQuery<{ analysis: string }>({
     queryKey: ['/api/analyze-period', monthStart, monthEnd, 'month'],
-    queryFn: async () => fetchAndDecryptPeriodAnalysis({
-      startDate: monthStart,
-      endDate: monthEnd,
-      periodType: 'month'
-    }),
     enabled: false,
-    staleTime: Infinity // Period analysis doesn't change unless explicitly regenerated
   });
 
   // Function to analyze the current period
@@ -101,36 +80,21 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
           await refetchMonthly();
         }
       } else {
-        const periodAnalysisData = {
-          startDate,
-          endDate,
-          periodType,
-          userId: user?.id
-        };
-
-        // Create a new period analysis with encryption support if enabled
-        const result = await saveEncryptedPeriodAnalysis(periodAnalysisData);
-        
-        if (!result) {
-          throw new Error(`Failed to analyze ${periodType}`);
-        }
-        
-        // Fetch the newly created analysis with decryption support
-        const analysis = await fetchAndDecryptPeriodAnalysis({
+        // Otherwise make a direct fetch
+        const response = await apiRequest('POST', '/api/analyze-period', {
           startDate,
           endDate,
           periodType
         });
         
-        // Update the cache with the decrypted analysis
-        queryClient.setQueryData(['/api/analyze-period', startDate, endDate, periodType], analysis);
-        
-        // Manually trigger the query refetch to make sure UI updates
-        if (periodType === 'week') {
-          await refetchWeekly();
-        } else {
-          await refetchMonthly();
+        if (!response.ok) {
+          throw new Error(`Failed to analyze ${periodType}`);
         }
+        
+        const data = await response.json();
+        
+        // Update cache
+        queryClient.setQueryData(['/api/analyze-period', startDate, endDate, periodType], data);
       }
 
       toast({
@@ -159,38 +123,21 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
         description: `Using AI to reanalyze your notes for ${displayRange}...`,
       });
 
-      // Prepare regeneration parameters
-      const regenerationData = {
-        startDate,
-        endDate,
-        periodType,
-        userId: user?.id,
-        regenerate: true
-      };
-
-      // Regenerate the analysis with encryption support
-      const result = await saveEncryptedPeriodAnalysis(regenerationData);
-      
-      if (!result) {
-        throw new Error(`Failed to regenerate ${periodType} analysis`);
-      }
-      
-      // Fetch the newly regenerated analysis with decryption support
-      const analysis = await fetchAndDecryptPeriodAnalysis({
+      // Make a direct fetch with regenerate parameter as a query parameter
+      const response = await apiRequest('POST', '/api/analyze-period?regenerate=true', {
         startDate,
         endDate,
         periodType
       });
       
-      // Update the cache with the decrypted regenerated analysis
-      queryClient.setQueryData(['/api/analyze-period', startDate, endDate, periodType], analysis);
-      
-      // Manually trigger the query refetch to make sure UI updates
-      if (periodType === 'week') {
-        await refetchWeekly();
-      } else {
-        await refetchMonthly();
+      if (!response.ok) {
+        throw new Error(`Failed to regenerate ${periodType} analysis`);
       }
+      
+      const data = await response.json();
+      
+      // Update cache
+      queryClient.setQueryData(['/api/analyze-period', startDate, endDate, periodType], data);
 
       toast({
         title: "Analysis regenerated",
@@ -206,53 +153,14 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
     }
   };
 
-  // Effect to initialize queries when component mounts
-  useEffect(() => {
-    if (!hasInitialized && user) {
-      // Check if we have existing analyses in the cache
-      const weekCachedData = queryClient.getQueryData(['/api/analyze-period', weekStart, weekEnd, 'week']);
-      const monthCachedData = queryClient.getQueryData(['/api/analyze-period', monthStart, monthEnd, 'month']);
-      
-      // If no cached data, attempt to fetch both analyses
-      if (!weekCachedData) {
-        refetchWeekly();
-      }
-      
-      if (!monthCachedData) {
-        refetchMonthly();
-      }
-      
-      setHasInitialized(true);
-    }
-  }, [user, hasInitialized, weekStart, weekEnd, monthStart, monthEnd, refetchWeekly, refetchMonthly]);
-
   const isLoading = (activeTab === 'week' && isWeeklyFetching) || (activeTab === 'month' && isMonthlyFetching);
-
-  // Check if encryption is enabled for the user
-  const encryptionEnabled = user && isEncryptionEnabled();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
       <Card className="card-gradient border border-blue-100 shadow-md">
         <CardHeader className="p-4 flex items-center">
           <div className="flex justify-between items-center w-full">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg my-0 ml-1 text-blue-900">Period Analysis</CardTitle>
-              {encryptionEnabled && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex">
-                        <Lock className="h-3.5 w-3.5 text-blue-600" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Encrypted data</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
+            <CardTitle className="text-lg my-0 ml-1 text-blue-900">Period Analysis</CardTitle>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-blue-50 transition-colors">
                 {isOpen ? (
@@ -318,23 +226,15 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <div className="analysis-box-header">
                       <div className="analysis-box-title">Weekly Analysis</div>
                       {weeklyAnalysis && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
-                                onClick={() => regenerateAnalysis('week')}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">Regenerate analysis</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
+                          onClick={() => regenerateAnalysis('week')}
+                          title="Regenerate analysis"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
                     <div className="analysis-content">
@@ -383,23 +283,15 @@ export default function PeriodAnalysis({ currentDate }: PeriodAnalysisProps) {
                     <div className="analysis-box-header">
                       <div className="analysis-box-title">Monthly Analysis</div>
                       {monthlyAnalysis && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
-                                onClick={() => regenerateAnalysis('month')}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">Regenerate analysis</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 -mr-1 rounded-full"
+                          onClick={() => regenerateAnalysis('month')}
+                          title="Regenerate analysis"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
                     <div className="analysis-content">

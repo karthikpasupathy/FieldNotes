@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { setupAuth, generateResetToken } from "./auth";
+import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
@@ -42,25 +42,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // No longer resetting storage at startup so user data persists
   
-  // Attempt to update database schema to support latest features
+  // Attempt to alter the notes table to add is_moment column if it doesn't exist
   try {
-    // Add is_moment column to notes if it doesn't exist
     await pool.query(`
       ALTER TABLE notes 
       ADD COLUMN IF NOT EXISTS is_moment BOOLEAN DEFAULT FALSE
     `);
     console.log("Database schema updated to support Moments feature");
-    
-    // Add encryption fields to users if they don't exist
-    await pool.query(`
-      ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS encryption_salt TEXT,
-      ADD COLUMN IF NOT EXISTS encryption_enabled BOOLEAN DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS encryption_version TEXT
-    `);
-    console.log("Database schema updated to support End-to-End Encryption");
   } catch (error) {
-    console.error("Error updating database schema:", error);
+    console.error("Error updating database schema for Moments:", error);
   }
   
   // Password reset request endpoint
@@ -124,16 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash the new password and update user
-      // Use scrypt for password hashing
-      const crypto = require('crypto');
-      const { promisify } = require('util');
-      const scryptAsync = promisify(crypto.scrypt);
-      
-      // Generate salt and hash password
-      const salt = crypto.randomBytes(16).toString("hex");
-      const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-      const hashedPassword = `${buf.toString("hex")}.${salt}`;
-      
+      const hashedPassword = await hashPassword(password);
       await storage.updateUserPassword(user.id, hashedPassword);
       
       // Clear reset token
@@ -702,93 +683,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error analyzing moments:", error);
       res.status(500).json({ message: "Failed to analyze moments" });
-    }
-  });
-  
-  // Encryption-related endpoints
-  
-  // Enable encryption for a user
-  app.post("/api/user/enable-encryption", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      
-      // Check if encryption is already enabled
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if (user.encryptionEnabled) {
-        return res.status(400).json({ message: "Encryption is already enabled for this account" });
-      }
-      
-      // Enable encryption
-      const updatedUser = await storage.updateUserEncryption(userId, true);
-      
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error enabling encryption:", error);
-      res.status(500).json({ message: "Failed to enable encryption" });
-    }
-  });
-  
-  // Disable encryption for a user (requires password confirmation)
-  app.post("/api/user/disable-encryption", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const { password } = req.body;
-      
-      if (!password) {
-        return res.status(400).json({ message: "Password confirmation is required to disable encryption" });
-      }
-      
-      // Check if encryption is already disabled
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if (!user.encryptionEnabled) {
-        return res.status(400).json({ message: "Encryption is not enabled for this account" });
-      }
-      
-      // Verify password before disabling encryption
-      // Use scrypt for password verification
-      const crypto = require('crypto');
-      const { promisify } = require('util');
-      const scryptAsync = promisify(crypto.scrypt);
-      
-      // Compare passwords
-      try {
-        const [hashed, salt] = user.password.split(".");
-        
-        if (!hashed || !salt) {
-          console.error('Invalid stored password format');
-          return res.status(500).json({ message: "An error occurred while verifying your password" });
-        }
-        
-        const hashedBuf = Buffer.from(hashed, "hex");
-        const suppliedBuf = (await scryptAsync(password, salt, 64)) as Buffer;
-        
-        const isPasswordValid = crypto.timingSafeEqual(hashedBuf, suppliedBuf);
-        
-        if (!isPasswordValid) {
-          return res.status(403).json({ message: "Invalid password. Please provide your current password to disable encryption." });
-        }
-      } catch (error) {
-        console.error("Error comparing passwords:", error);
-        return res.status(500).json({ message: "Failed to verify password" });
-      }
-      
-      // Disable encryption
-      const updatedUser = await storage.updateUserEncryption(userId, false);
-      
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error disabling encryption:", error);
-      res.status(500).json({ message: "Failed to disable encryption" });
     }
   });
 

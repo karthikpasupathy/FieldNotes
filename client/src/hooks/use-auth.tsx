@@ -7,12 +7,6 @@ import {
 import { insertUserSchema, User, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  setEncryptionKey, 
-  clearEncryptionKey, 
-  generateNewUserSalt, 
-  isEncryptionEnabled 
-} from "@/lib/encryption";
 
 type AuthContextType = {
   user: User | null;
@@ -23,11 +17,6 @@ type AuthContextType = {
   registerMutation: UseMutationResult<User, Error, InsertUser>;
   resetPasswordRequestMutation: UseMutationResult<void, Error, { email: string }>;
   resetPasswordMutation: UseMutationResult<void, Error, { token: string; password: string }>;
-  
-  // Encryption-related methods
-  isEncryptionAvailable: boolean;
-  enableEncryptionMutation: UseMutationResult<User, Error, void>;
-  disableEncryptionMutation: UseMutationResult<User, Error, { confirmPassword: string }>;
 };
 
 type LoginData = {
@@ -51,24 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      // Save credentials for encryption key setup
-      const user = await res.json();
-      
-      // Set up encryption if the user has it enabled
-      if (user.encryptionEnabled && user.encryptionSalt) {
-        setEncryptionKey(credentials.password, user.encryptionSalt);
-        
-        // Log additional information if encryption was set up
-        if (isEncryptionEnabled()) {
-          console.log('End-to-end encryption initialized for this session');
-        }
-      }
-      
-      return user;
+      return await res.json();
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
-      
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.name || user.username}!`,
@@ -85,19 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: InsertUser) => {
-      // Generate an encryption salt for all new users
-      // This allows them to enable encryption later without changing password
-      const encryptionSalt = generateNewUserSalt();
-      
-      // Add the salt to the registration data
-      const userDataWithSalt = {
-        ...userData,
-        encryptionSalt,
-        encryptionEnabled: false, // Default to disabled
-        encryptionVersion: 'v1',
-      };
-      
-      const res = await apiRequest("POST", "/api/register", userDataWithSalt);
+      const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
     onSuccess: (user: User) => {
@@ -121,12 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      // Clear the encryption key when logging out
-      clearEncryptionKey();
-      
-      // Clear user data from cache
       queryClient.setQueryData(["/api/user"], null);
-      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
@@ -136,60 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Logout failed",
         description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Mutation to enable encryption for the current user
-  const enableEncryptionMutation = useMutation({
-    mutationFn: async () => {
-      // This requires the current password which we already have from login
-      const result = await apiRequest("POST", "/api/user/enable-encryption");
-      return await result.json();
-    },
-    onSuccess: (updatedUser: User) => {
-      // Update user data in cache
-      queryClient.setQueryData(["/api/user"], updatedUser);
-      
-      toast({
-        title: "Encryption Enabled",
-        description: "Your notes are now protected with end-to-end encryption. Only you can read them.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Couldn't Enable Encryption",
-        description: error.message || "There was a problem enabling encryption",
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Mutation to disable encryption (requires password confirmation)
-  const disableEncryptionMutation = useMutation({
-    mutationFn: async ({ confirmPassword }: { confirmPassword: string }) => {
-      const result = await apiRequest("POST", "/api/user/disable-encryption", { 
-        password: confirmPassword 
-      });
-      return await result.json();
-    },
-    onSuccess: (updatedUser: User) => {
-      // Update user data in cache
-      queryClient.setQueryData(["/api/user"], updatedUser);
-      
-      // Clear the encryption key
-      clearEncryptionKey();
-      
-      toast({
-        title: "Encryption Disabled",
-        description: "End-to-end encryption has been turned off for your account.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Couldn't Disable Encryption",
-        description: error.message || "There was a problem disabling encryption. Check your password.",
         variant: "destructive",
       });
     },
@@ -234,12 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Check if the browser supports the encryption features we need
-  const isEncryptionAvailable = typeof window !== 'undefined' && 
-                               window.crypto && 
-                               window.crypto.subtle && 
-                               typeof TextEncoder !== 'undefined';
-                               
   return (
     <AuthContext.Provider
       value={{
@@ -251,11 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registerMutation,
         resetPasswordRequestMutation,
         resetPasswordMutation,
-        
-        // Encryption related properties and methods
-        isEncryptionAvailable,
-        enableEncryptionMutation,
-        disableEncryptionMutation,
       }}
     >
       {children}
