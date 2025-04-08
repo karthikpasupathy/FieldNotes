@@ -55,19 +55,34 @@ function LegacyApp() {
         <Route path="/day/:date">
           {() => {
             const { user } = useAuth();
-            return user ? <Home /> : <Redirect to="/auth" />;
+            // Make sure we always return a valid JSX element, never null
+            if (user) {
+              return <Home />;
+            } else {
+              return <Redirect to="/auth" />;
+            }
           }}
         </Route>
         <Route path="/profile">
           {() => {
             const { user } = useAuth();
-            return user ? <ProfilePage /> : <Redirect to="/auth" />;
+            // Make sure we always return a valid JSX element, never null
+            if (user) {
+              return <ProfilePage />;
+            } else {
+              return <Redirect to="/auth" />;
+            }
           }}
         </Route>
         <Route path="/moments">
           {() => {
             const { user } = useAuth();
-            return user ? <MomentsPage /> : <Redirect to="/auth" />;
+            // Make sure we always return a valid JSX element, never null
+            if (user) {
+              return <MomentsPage />;
+            } else {
+              return <Redirect to="/auth" />;
+            }
           }}
         </Route>
         
@@ -98,7 +113,12 @@ function ClerkAppContent() {
                 </div>
               );
             }
-            return user ? <Redirect to={`/day/${today}`} /> : <Redirect to="/clerk-welcome" />;
+            // Make sure we always return a valid JSX element, never null
+            if (user) {
+              return <Redirect to={`/day/${today}`} />;
+            } else {
+              return <Redirect to="/clerk-welcome" />;
+            }
           }}
         </Route>
         
