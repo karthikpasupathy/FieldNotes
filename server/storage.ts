@@ -39,6 +39,8 @@ export interface IStorage {
   getAnalysis(date: string, userId: number): Promise<string | null>;
   savePeriodAnalysis(periodAnalysis: InsertPeriodAnalysis): Promise<PeriodAnalysis>;
   getPeriodAnalysis(startDate: string, endDate: string, periodType: string, userId: number): Promise<PeriodAnalysis | null>;
+  // Search functionality
+  searchNotes(searchTerm: string, userId: number): Promise<Array<Note & { date: string }>>;
   // Streak functionality
   getUserStreak(userId: number): Promise<{ currentStreak: number; longestStreak: number; lastEntryDate: string | null }>;
   // Moments related methods
@@ -317,6 +319,29 @@ export class MemStorage implements IStorage {
     return Array.from(this.notes.values())
       .filter(note => note.userId === userId && note.isMoment === true)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  async searchNotes(searchTerm: string, userId: number): Promise<Array<Note & { date: string }>> {
+    // Convert search term to lowercase for case-insensitive search
+    const term = searchTerm.toLowerCase();
+    
+    return Array.from(this.notes.values())
+      .filter(note => 
+        // Only include notes from the specified user
+        note.userId === userId && 
+        // Check if content includes the search term (case insensitive)
+        note.content.toLowerCase().includes(term)
+      )
+      .map(note => ({
+        ...note,
+        date: note.date // Date is already included in the note, but we include it for type safety
+      }))
+      .sort((a, b) => 
+        // Sort by date first (descending)
+        b.date.localeCompare(a.date) || 
+        // Then by timestamp (descending)
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
   }
 
   async analyzeMoments(userId: number): Promise<string> {
