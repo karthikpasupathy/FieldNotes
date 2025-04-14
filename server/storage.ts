@@ -481,6 +481,31 @@ export class MemStorage implements IStorage {
 
 export class PostgresStorage implements IStorage {
   sessionStore: session.Store;
+  
+  async searchNotes(searchTerm: string, userId: number): Promise<Array<Note & { date: string }>> {
+    try {
+      // Use PostgreSQL's ILIKE operator for case-insensitive search
+      const query = `
+        SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment"
+        FROM notes 
+        WHERE user_id = $1 
+        AND content ILIKE $2
+        ORDER BY date DESC, timestamp DESC
+      `;
+      
+      // Use % wildcards to search for the term anywhere in the content
+      const result = await this.executeQuery(query, [userId, `%${searchTerm}%`]);
+      
+      // The date is already included in the Note type, but we need to satisfy the return type
+      return result.rows.map(note => ({
+        ...note,
+        date: note.date
+      }));
+    } catch (error) {
+      console.error(`Error searching notes with term "${searchTerm}":`, error);
+      return [];
+    }
+  }
 
   constructor() {
     // Set up PostgreSQL session store with error handling
