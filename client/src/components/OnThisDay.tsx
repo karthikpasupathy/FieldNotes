@@ -122,6 +122,7 @@ export default function OnThisDay({ currentDate }: { currentDate: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
+          id="on-this-day-trigger"
           variant="outline" 
           size="sm"
           title="On This Day"

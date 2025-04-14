@@ -23,6 +23,7 @@ import Calendar from "@/components/Calendar";
 import RecentDays from "@/components/RecentDays";
 import UserProfile from "@/components/UserProfile";
 import PeriodAnalysis from "@/components/PeriodAnalysis";
+import OnThisDay from "@/components/OnThisDay";
 import { StreakBar } from "@/components/StreakBar";
 import { formatDateForDisplay, formatDateForAPI } from "@/lib/date-utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -304,6 +305,9 @@ export default function Home() {
                 <span className="sr-only">Search</span>
               </Button>
               
+              {/* On This Day Button */}
+              <OnThisDay currentDate={currentDate} />
+              
               {/* User Profile */}
               <UserProfile />
             </div>
@@ -435,6 +439,16 @@ export default function Home() {
           >
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
+          </button>
+          
+          {/* On This Day Mobile Button */}
+          <button 
+            className="flex items-center py-3 px-2 text-gray-500"
+            onClick={() => document.getElementById('on-this-day-trigger')?.click()}
+            title="On This Day"
+          >
+            <History className="h-5 w-5" />
+            <span className="sr-only">On This Day</span>
           </button>
         </div>
       </nav>
