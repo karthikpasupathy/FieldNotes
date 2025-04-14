@@ -12,7 +12,8 @@ import {
   User as UserIcon,
   BrainCircuit,
   CalendarRange,
-  Sparkles
+  Sparkles,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -300,6 +301,18 @@ export default function Home() {
                 <span className="sr-only sm:not-sr-only">Export</span>
               </Button>
               
+              {/* Search Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation('/search')}
+                title="Search Notes"
+                className="hidden sm:flex text-black bg-white border-blue-500 hover:bg-white hover:text-black"
+              >
+                <Search className="h-4 w-4 mr-1" />
+                <span className="sr-only sm:not-sr-only">Search</span>
+              </Button>
+              
               {/* User Profile */}
               <UserProfile />
             </div>
@@ -423,6 +436,14 @@ export default function Home() {
           >
             <CalendarRange className="h-5 w-5" />
             <span className="sr-only">Period</span>
+          </button>
+          <button 
+            className="flex items-center py-3 px-2 text-gray-500"
+            onClick={() => setLocation('/search')}
+            title="Search Notes"
+          >
+            <Search className="h-5 w-5" />
+            <span className="sr-only">Search</span>
           </button>
         </div>
       </nav>

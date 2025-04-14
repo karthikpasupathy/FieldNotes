@@ -49,6 +49,7 @@ function App() {
           <ProtectedRoute path="/day/:date" component={Home} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <ProtectedRoute path="/moments" component={MomentsPage} />
+          <ProtectedRoute path="/search" component={SearchPage} />
           
           {/* Public Routes */}
           <Route path="/auth" component={AuthPage} />

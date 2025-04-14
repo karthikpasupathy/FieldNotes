@@ -63,7 +63,7 @@ export default function SearchPage() {
 
   // Navigate to the specific date page when clicking on a search result
   const handleResultClick = (date: string) => {
-    setLocation(`/${date}`);
+    setLocation(`/day/${date}`);
   };
 
   // Format the date for display
