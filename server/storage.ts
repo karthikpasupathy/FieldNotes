@@ -497,7 +497,7 @@ export class PostgresStorage implements IStorage {
       const result = await this.executeQuery(query, [userId, `%${searchTerm}%`]);
       
       // The date is already included in the Note type, but we need to satisfy the return type
-      return result.rows.map(note => ({
+      return result.rows.map((note: any) => ({
         ...note,
         date: note.date
       }));

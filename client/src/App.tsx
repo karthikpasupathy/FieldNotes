@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
+import SearchPage from "@/pages/search-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import InstallPrompt from "@/components/InstallPrompt";

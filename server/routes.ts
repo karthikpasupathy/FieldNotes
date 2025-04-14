@@ -731,6 +731,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Search notes endpoint
+  app.get("/api/search", isAuthenticated, async (req, res) => {
+    try {
+      const { query } = req.query;
+      const userId = req.user!.id;
+      
+      // Validate the search query
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      // Perform the search
+      const results = await storage.searchNotes(query, userId);
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching notes:", error);
+      res.status(500).json({ message: "Failed to search notes" });
+    }
+  });
+  
   app.get("/api/analyze-moments", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
