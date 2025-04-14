@@ -401,18 +401,20 @@ export default function Home() {
       {/* Mobile bottom navigation */}
       <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
         <div className="max-w-md mx-auto flex justify-between">
-          <button className="flex items-center py-3 px-2 text-blue-600" title="Notes">
-            <List className="h-5 w-5" />
-            <span className="sr-only">Notes</span>
-          </button>
+          {/* Combined Notes/Calendar button */}
           <button 
-            className="flex items-center py-3 px-2 text-gray-500"
+            className={`flex items-center py-3 px-2 ${isCalendarOpen ? 'text-gray-500' : 'text-blue-600'}`}
             onClick={toggleCalendar}
-            title="Calendar"
+            title={isCalendarOpen ? "Close Calendar" : "Show Calendar"}
           >
-            <CalendarIcon className="h-5 w-5" />
-            <span className="sr-only">Calendar</span>
+            {isCalendarOpen ? (
+              <CalendarIcon className="h-5 w-5" />
+            ) : (
+              <List className="h-5 w-5" />
+            )}
+            <span className="sr-only">{isCalendarOpen ? "Calendar" : "Notes"}</span>
           </button>
+          
           <button 
             className="flex items-center py-3 px-2 text-yellow-500"
             onClick={() => setLocation('/moments')}
@@ -423,6 +425,7 @@ export default function Home() {
             </div>
             <span className="sr-only">Moments</span>
           </button>
+          
           <button 
             className="flex items-center py-3 px-2 text-gray-500"
             onClick={analyzeNotes}
@@ -432,6 +435,7 @@ export default function Home() {
             <BrainCircuit className="h-5 w-5" />
             <span className="sr-only">Daily</span>
           </button>
+          
           <button 
             className={`flex items-center py-3 px-2 ${isPeriodAnalysisOpen ? 'text-blue-600' : 'text-gray-500'}`}
             onClick={togglePeriodAnalysis}
@@ -440,6 +444,7 @@ export default function Home() {
             <CalendarRange className="h-5 w-5" />
             <span className="sr-only">Period</span>
           </button>
+          
           <button 
             className="flex items-center py-3 px-2 text-gray-500"
             onClick={() => setLocation('/search')}
