@@ -221,15 +221,17 @@ export default function Home() {
     }
   };
 
-  // Always check if the current date in URL is today's date
-  // If not today and we're loading the page, redirect to today
+  // Only redirect to today's date if we don't have a date parameter 
+  // or if the date is invalid
   useEffect(() => {
+    // Only run this on initial mount
     const todayDate = formatDateForAPI(new Date());
-    // Only redirect if we're not already on today's date
-    if (params?.date !== todayDate) {
+    
+    // Only redirect if no date parameter is present or if the date is invalid
+    if (!params?.date || isNaN(new Date(params.date).getTime())) {
       setLocation(`/day/${todayDate}`);
     }
-  }, [setLocation]);
+  }, [params, setLocation]);
 
   return (
     <div className="flex flex-col h-screen">
