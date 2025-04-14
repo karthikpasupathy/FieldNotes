@@ -289,18 +289,6 @@ export default function Home() {
                 </span>
               </Button>
               
-              {/* Export Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportNotesAsMarkdown}
-                title="Export as Markdown"
-                className="hidden sm:flex text-black bg-white border-blue-500 hover:bg-white hover:text-black"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                <span className="sr-only sm:not-sr-only">Export</span>
-              </Button>
-              
               {/* Search Button */}
               <Button
                 variant="outline"
