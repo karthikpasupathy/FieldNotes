@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -76,9 +76,26 @@ export default function SearchPage() {
     }
   };
 
+  // Function to go back to the today's notes view
+  const handleBack = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setLocation(`/day/${today}`);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Search Your Notes</h1>
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="mr-4"
+          title="Back to notes"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold">Search Your Notes</h1>
+      </div>
       
       <div className="relative mb-8">
         <div className="flex w-full max-w-lg">
@@ -90,6 +107,7 @@ export default function SearchPage() {
               className="pl-8 pr-10"
               value={searchTerm}
               onChange={handleSearchChange}
+              autoFocus
             />
             {searchTerm && (
               <Button
