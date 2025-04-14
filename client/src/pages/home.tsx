@@ -241,8 +241,16 @@ export default function Home() {
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-xl font-bold text-gray-800 flex items-center">
-              <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-10 w-10 mr-2" /> 
+            <h1 
+              onClick={() => setLocation(`/day/${formatDateForAPI(new Date())}`)}
+              className="text-xl font-bold text-gray-800 flex items-center cursor-pointer hover:text-blue-600 transition-colors"
+              title="Go to Today"
+            >
+              <img 
+                src="/icons/daynotes-logo.png" 
+                alt="Daynotes Logo" 
+                className="h-10 w-10 mr-2" 
+              /> 
               <span className="hidden sm:inline">Daynotes</span>
             </h1>
             
