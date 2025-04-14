@@ -297,8 +297,8 @@ export default function Home() {
                 title="Search Notes"
                 className="hidden sm:flex text-black bg-white border-blue-500 hover:bg-white hover:text-black"
               >
-                <Search className="h-4 w-4 mr-1" />
-                <span className="sr-only sm:not-sr-only">Search</span>
+                <Search className="h-4 w-4" />
+                <span className="sr-only">Search</span>
               </Button>
               
               {/* User Profile */}
