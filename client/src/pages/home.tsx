@@ -13,7 +13,8 @@ import {
   BrainCircuit,
   CalendarRange,
   Sparkles,
-  Search
+  Search,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";

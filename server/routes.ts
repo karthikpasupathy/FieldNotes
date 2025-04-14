@@ -752,6 +752,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // On This Day endpoint - fetch notes from previous time periods
+  app.get("/api/on-this-day", isAuthenticated, async (req, res) => {
+    try {
+      const currentDateStr = req.query.date as string || new Date().toISOString().split('T')[0];
+      const userId = req.user!.id;
+      
+      // Parse the current date
+      const today = new Date(currentDateStr);
+      
+      // Calculate dates for 1 week ago, 1 month ago, and 1 year ago
+      const oneWeekAgo = new Date(today);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      const oneMonthAgo = new Date(today);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const oneYearAgo = new Date(today);
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      
+      // Format dates as YYYY-MM-DD strings for the API
+      const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+      const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0];
+      const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+      
+      // Get notes for each date
+      const [weekNotes, monthNotes, yearNotes] = await Promise.all([
+        storage.getNotesByDate(oneWeekAgoStr, userId),
+        storage.getNotesByDate(oneMonthAgoStr, userId),
+        storage.getNotesByDate(oneYearAgoStr, userId)
+      ]);
+      
+      // Format dates for display (e.g., "Monday, April 7, 2025")
+      const formatDateForDisplay = (date: Date): string => {
+        return date.toLocaleDateString('en-US', { 
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      };
+      
+      // Return all the notes organized by time period
+      res.json({
+        weekAgo: {
+          date: oneWeekAgoStr,
+          notes: weekNotes,
+          formattedDate: formatDateForDisplay(oneWeekAgo)
+        },
+        monthAgo: {
+          date: oneMonthAgoStr,
+          notes: monthNotes,
+          formattedDate: formatDateForDisplay(oneMonthAgo)
+        },
+        yearAgo: {
+          date: oneYearAgoStr,
+          notes: yearNotes,
+          formattedDate: formatDateForDisplay(oneYearAgo)
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching On This Day notes:", error);
+      res.status(500).json({ message: "Failed to fetch On This Day notes" });
+    }
+  });
+  
   app.get("/api/analyze-moments", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
