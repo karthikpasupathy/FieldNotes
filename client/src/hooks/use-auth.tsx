@@ -99,26 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const magicLinkMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", "/api/magic-link-request", { email });
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Magic link sent!",
-        description: "Check your email for the login link",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send magic link",
-        description: error.message || "Please check your email address and try again",
-        variant: "destructive",
-      });
-    },
-  });
-
   const resetPasswordRequestMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
       await apiRequest("POST", "/api/reset-password-request", { email });
@@ -169,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registerMutation,
         resetPasswordRequestMutation,
         resetPasswordMutation,
-        magicLinkMutation,
       }}
     >
       {children}

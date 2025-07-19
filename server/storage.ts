@@ -25,12 +25,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
-  getUserByMagicLinkToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
-  updateUserMagicLinkToken(userId: number, token: string, expiry: Date): Promise<void>;
-  createUserFromMagicLink(email: string, name?: string): Promise<User>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
   getNotesByDateRange(startDate: string, endDate: string, userId: number): Promise<Note[]>;
   getAllDates(userId?: number): Promise<string[]>;
@@ -118,12 +115,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserByMagicLinkToken(token: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.magicLinkToken === token,
-    );
-  }
-
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
@@ -131,9 +122,7 @@ export class MemStorage implements IStorage {
       id,
       name: insertUser.name || null,
       resetToken: null,
-      resetTokenExpiry: null,
-      magicLinkToken: null,
-      magicLinkExpiry: null
+      resetTokenExpiry: null 
     };
     this.users.set(id, user);
     return user;
@@ -156,32 +145,6 @@ export class MemStorage implements IStorage {
       user.resetTokenExpiry = null;
       this.users.set(userId, user);
     }
-  }
-
-  async updateUserMagicLinkToken(userId: number, token: string, expiry: Date): Promise<void> {
-    const user = await this.getUser(userId);
-    if (user) {
-      user.magicLinkToken = token;
-      user.magicLinkExpiry = expiry;
-      this.users.set(userId, user);
-    }
-  }
-
-  async createUserFromMagicLink(email: string, name?: string): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = {
-      id,
-      username: null,
-      password: null,
-      email,
-      name: name || null,
-      resetToken: null,
-      resetTokenExpiry: null,
-      magicLinkToken: null,
-      magicLinkExpiry: null
-    };
-    this.users.set(id, user);
-    return user;
   }
 
   async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
@@ -640,24 +603,11 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getUserByMagicLinkToken(token: string): Promise<User | undefined> {
-    try {
-      const result = await this.executeQuery(
-        'SELECT * FROM users WHERE magic_link_token = $1 AND magic_link_expiry > NOW()', 
-        [token]
-      );
-      return result.rows[0] || undefined;
-    } catch (error) {
-      console.error('Error getting user by magic link token:', error);
-      return undefined;
-    }
-  }
-
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, magic_link_token, magic_link_expiry) VALUES ($1, $2, $3, $4, NULL, NULL, NULL, NULL) RETURNING *',
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
         [username, password, email, name || null]
       );
       return result.rows[0];
@@ -676,31 +626,6 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error updating reset token for user ${userId}:`, error);
       throw new Error('Failed to update reset token. Please try again later.');
-    }
-  }
-
-  async updateUserMagicLinkToken(userId: number, token: string, expiry: Date): Promise<void> {
-    try {
-      await this.executeQuery(
-        'UPDATE users SET magic_link_token = $1, magic_link_expiry = $2 WHERE id = $3',
-        [token, expiry, userId]
-      );
-    } catch (error) {
-      console.error(`Error updating magic link token for user ${userId}:`, error);
-      throw new Error('Failed to update magic link token. Please try again later.');
-    }
-  }
-
-  async createUserFromMagicLink(email: string, name?: string): Promise<User> {
-    try {
-      const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, magic_link_token, magic_link_expiry) VALUES (NULL, NULL, $1, $2, NULL, NULL, NULL, NULL) RETURNING *',
-        [email, name || null]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating user from magic link:', error);
-      throw new Error('Failed to create user from magic link. Please try again later.');
     }
   }
 

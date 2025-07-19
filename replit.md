@@ -33,13 +33,10 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: Drizzle Kit for schema migrations
 
 ### Authentication System
-- **Strategy**: Multiple authentication methods available:
-  - Local username/password authentication
-  - Magic link (passwordless email authentication)
+- **Strategy**: Local username/password authentication
 - **Password Security**: Scrypt hashing with random salt
 - **Session Management**: Server-side sessions stored in PostgreSQL
 - **Authorization**: Route-level protection with middleware
-- **Magic Links**: Secure token-based authentication via email (15-minute expiration)
 
 ### AI Integration
 - **Provider**: OpenAI GPT-4.1-mini
@@ -83,7 +80,6 @@ Preferred communication style: Simple, everyday language.
 ### Core Dependencies
 - **Database**: PostgreSQL via @neondatabase/serverless
 - **AI**: OpenAI API for note analysis
-- **Email**: SendGrid for magic link and notification emails
 - **UI Components**: Radix UI primitives for accessible components
 - **Styling**: Tailwind CSS with custom theme configuration
 - **Date Handling**: date-fns for date manipulation and formatting
@@ -102,8 +98,6 @@ Preferred communication style: Simple, everyday language.
   - DATABASE_URL for PostgreSQL connection
   - SESSION_SECRET for session security
   - OPENAI_API_KEY for AI features
-  - SENDGRID_API_KEY for email functionality
-  - FROM_EMAIL for verified sender address (optional)
 
 ### Replit Integration
 - **Auto-provisioning**: Database automatically provisioned via Replit

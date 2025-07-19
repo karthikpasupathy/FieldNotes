@@ -30,13 +30,9 @@ const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const magicLinkSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
-
 export default function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, isLoading, loginMutation, registerMutation, resetPasswordRequestMutation, magicLinkMutation } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation, resetPasswordRequestMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
   
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -65,13 +61,6 @@ export default function AuthPage() {
     },
   });
 
-  const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
-    resolver: zodResolver(magicLinkSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
-
   const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
     loginMutation.mutate(values);
   };
@@ -84,11 +73,6 @@ export default function AuthPage() {
   const onForgotPasswordSubmit = (values: z.infer<typeof forgotPasswordSchema>) => {
     resetPasswordRequestMutation.mutate(values);
     forgotPasswordForm.reset();
-  };
-
-  const onMagicLinkSubmit = (values: z.infer<typeof magicLinkSchema>) => {
-    magicLinkMutation.mutate(values.email);
-    magicLinkForm.reset();
   };
 
   // Redirect if already logged in
@@ -114,10 +98,9 @@ export default function AuthPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 rounded-lg bg-gray-100">
-              <TabsTrigger value="login" className="rounded-md text-sm">Login</TabsTrigger>
-              <TabsTrigger value="magic-link" className="rounded-md text-sm">Magic Link</TabsTrigger>
-              <TabsTrigger value="register" className="rounded-md text-sm">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
+              <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="space-y-4 mt-6">
@@ -172,54 +155,6 @@ export default function AuthPage() {
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="magic-link" className="space-y-4 mt-6">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Login with Magic Link</h3>
-                <p className="text-sm text-gray-600">
-                  Enter your email address and we'll send you a secure login link. No password required!
-                </p>
-              </div>
-              
-              <Form {...magicLinkForm}>
-                <form onSubmit={magicLinkForm.handleSubmit(onMagicLinkSubmit)} className="space-y-4">
-                  <FormField
-                    control={magicLinkForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="your@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="submit"
-                    className="w-full btn-gradient"
-                    disabled={magicLinkMutation.isPending}
-                  >
-                    {magicLinkMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending magic link...
-                      </>
-                    ) : (
-                      "Send Magic Link"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-
-              <div className="text-center mt-4">
-                <p className="text-xs text-gray-500">
-                  The magic link will expire in 15 minutes for security.
-                </p>
               </div>
             </TabsContent>
 

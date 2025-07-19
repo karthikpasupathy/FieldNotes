@@ -1,10 +1,9 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, magicLinkRequestSchema, magicLinkVerifySchema, type Note } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { setupAuth, generateResetToken, generateMagicLinkToken, hashPassword } from "./auth";
-import { sendMagicLinkEmail, sendPasswordResetEmail } from "./email";
+import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { analyzeNotes, analyzePeriodNotes } from "./openai";
@@ -129,102 +128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error resetting password:", error);
       res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  // Magic Link Authentication Routes
-  app.post("/api/magic-link-request", async (req, res) => {
-    try {
-      const validation = magicLinkRequestSchema.safeParse(req.body);
-      
-      if (!validation.success) {
-        const errorMessage = fromZodError(validation.error).message;
-        return res.status(400).json({ message: errorMessage });
-      }
-
-      const { email } = validation.data;
-      
-      // Check if user exists with this email
-      let user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        // Create a new user account for magic link authentication
-        try {
-          user = await storage.createUserFromMagicLink(email);
-          console.log(`Created new user via magic link for email: ${email}`);
-        } catch (error) {
-          console.error('Error creating user from magic link:', error);
-          return res.status(500).json({ message: "Failed to process magic link request" });
-        }
-      }
-      
-      // Generate magic link token
-      const token = await generateMagicLinkToken();
-      const expiry = new Date();
-      expiry.setMinutes(expiry.getMinutes() + 15); // Token expires in 15 minutes
-      
-      await storage.updateUserMagicLinkToken(user.id, token, expiry);
-      
-      // Construct magic link URL
-      const protocol = req.get('host')?.includes('localhost') ? 'http' : 'https';
-      const magicLinkUrl = `${protocol}://${req.get('host')}/auth/magic-link/${token}`;
-      
-      // Send magic link email
-      const emailSent = await sendMagicLinkEmail(email, magicLinkUrl, user.name || undefined);
-      
-      if (emailSent) {
-        res.status(200).json({ 
-          message: "Magic link has been sent to your email address" 
-        });
-      } else {
-        res.status(500).json({ 
-          message: "Failed to send magic link. Please try again." 
-        });
-      }
-    } catch (error) {
-      console.error("Error requesting magic link:", error);
-      res.status(500).json({ message: "Failed to process magic link request" });
-    }
-  });
-
-  // Magic Link Verification Route
-  app.get("/api/magic-link-verify/:token", async (req, res) => {
-    try {
-      const { token } = req.params;
-      
-      if (!token) {
-        return res.status(400).json({ message: "Invalid magic link" });
-      }
-      
-      // Find user by magic link token
-      const user = await storage.getUserByMagicLinkToken(token);
-      
-      if (!user) {
-        return res.status(400).json({ message: "Invalid or expired magic link" });
-      }
-      
-      // Check if token is expired
-      const now = new Date();
-      if (user.magicLinkExpiry && new Date(user.magicLinkExpiry) < now) {
-        return res.status(400).json({ message: "Magic link has expired" });
-      }
-      
-      // Clear the magic link token (single use)
-      await storage.updateUserMagicLinkToken(user.id, "", new Date());
-      
-      // Log the user in by creating a session
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Login error:', err);
-          return res.status(500).json({ message: "Failed to log in" });
-        }
-        
-        // Redirect to the main app
-        res.redirect('/');
-      });
-    } catch (error) {
-      console.error("Error verifying magic link:", error);
-      res.status(500).json({ message: "Failed to verify magic link" });
     }
   });
 

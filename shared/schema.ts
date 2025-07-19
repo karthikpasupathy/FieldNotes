@@ -4,14 +4,12 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").unique(),
-  password: text("password"),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   email: text("email").notNull().unique(),
   name: text("name"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
-  magicLinkToken: text("magic_link_token"),
-  magicLinkExpiry: timestamp("magic_link_expiry"),
 });
 
 export const notes = pgTable("notes", {
@@ -42,14 +40,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
 });
 
-export const magicLinkRequestSchema = z.object({
-  email: z.string().email(),
-});
-
-export const magicLinkVerifySchema = z.object({
-  token: z.string().min(1),
-});
-
 export const insertNoteSchema = createInsertSchema(notes).pick({
   content: true,
   date: true,
@@ -69,7 +59,7 @@ export const userLoginSchema = z.object({
 });
 
 export const userRegisterSchema = insertUserSchema.extend({
-  password: z.string().min(6).optional(),
+  password: z.string().min(6),
   email: z.string().email(),
 });
 
