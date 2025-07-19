@@ -93,7 +93,7 @@ export default function NoteInput({ date }: NoteInputProps) {
           value={content}
           onChange={handleContentChange}
           placeholder="Add a new note (280 char max)..."
-          className="w-full p-3 resize-none transition focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md border-blue-200"
+          className="w-full p-3 resize-none transition-all duration-200 rounded-md border-2 border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 hover:border-slate-300"
           rows={3}
           maxLength={MAX_CHARS}
           style={{
