@@ -25,7 +25,7 @@ export async function analyzeNotes(notes: Note[]): Promise<string> {
       .join("\n");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "o3-mini",
       messages: [
         {
           role: "system",
@@ -99,7 +99,7 @@ export async function analyzePeriodNotes(
         "Note any trends, changes in mood, or significant observations across the month, and identify any larger patterns.";
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Using the most capable model for more thorough analysis
+      model: "o3-mini", // Using the most capable model for more thorough analysis
       messages: [
         {
           role: "system",
@@ -153,7 +153,7 @@ export async function analyzeMoments(moments: Note[]): Promise<string> {
       .join("\n\n");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Using the most capable model for analyzing special moments
+      model: "o3-mini", // Using the most capable model for analyzing special moments
       messages: [
         {
           role: "system",
