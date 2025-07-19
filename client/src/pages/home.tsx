@@ -13,6 +13,7 @@ import {
   BrainCircuit,
   CalendarRange,
   Sparkles,
+  Wand2,
   Search,
   History
 } from "lucide-react";
@@ -336,7 +337,7 @@ export default function Home() {
               </div>
               
               <div className="bg-white rounded-lg shadow-sm p-4">
-                <h2 className="font-semibold text-gray-800 mb-3">Moments</h2>
+                <h2 className="font-semibold text-gray-800 mb-3">Collections</h2>
                 <button 
                   onClick={() => setLocation('/moments')}
                   className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors mb-2"
@@ -346,8 +347,17 @@ export default function Home() {
                   </div>
                   <span>View All Moments</span>
                 </button>
+                <button 
+                  onClick={() => setLocation('/ideas')}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors mb-2"
+                >
+                  <div className="flex items-center justify-center bg-purple-500 rounded-md h-7 w-7 mr-2">
+                    <Wand2 className="h-4 w-4 text-white" />
+                  </div>
+                  <span>View All Ideas</span>
+                </button>
                 <p className="mt-3 text-sm text-gray-600">
-                  Collect and analyze your moments for insights and patterns.
+                  Collect your special moments and brilliant ideas for later review.
                 </p>
               </div>
             </div>

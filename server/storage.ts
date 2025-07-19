@@ -47,6 +47,9 @@ export interface IStorage {
   toggleMoment(noteId: number, userId: number): Promise<{ success: boolean; isNowMoment?: boolean }>;
   getMoments(userId: number): Promise<Note[]>;
   analyzeMoments(userId: number): Promise<string>;
+  // Ideas related methods
+  toggleIdea(noteId: number, userId: number): Promise<{ success: boolean; isNowIdea?: boolean }>;
+  getIdeas(userId: number): Promise<Note[]>;
   // Admin statistics methods
   getTotalUsers(): Promise<number>;
   getActiveUsersSince(date: Date): Promise<number>;
@@ -321,6 +324,24 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
+  // Ideas related methods
+  async toggleIdea(noteId: number, userId: number): Promise<{ success: boolean; isNowIdea?: boolean }> {
+    const note = this.notes.get(noteId);
+    if (note && note.userId === userId) {
+      // Toggle the idea flag
+      note.isIdea = !note.isIdea;
+      this.notes.set(noteId, note);
+      return { success: true, isNowIdea: note.isIdea };
+    }
+    return { success: false };
+  }
+
+  async getIdeas(userId: number): Promise<Note[]> {
+    return Array.from(this.notes.values())
+      .filter(note => note.userId === userId && note.isIdea === true)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
   async searchNotes(searchTerm: string, userId: number): Promise<Array<Note & { date: string }>> {
     // Convert search term to lowercase for case-insensitive search
     const term = searchTerm.toLowerCase();
@@ -486,7 +507,7 @@ export class PostgresStorage implements IStorage {
     try {
       // Use PostgreSQL's ILIKE operator for case-insensitive search
       const query = `
-        SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment"
+        SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment", is_idea as "isIdea"
         FROM notes 
         WHERE user_id = $1 
         AND content ILIKE $2
@@ -622,7 +643,7 @@ export class PostgresStorage implements IStorage {
 
   async getNotesByDate(date: string, userId?: number): Promise<Note[]> {
     try {
-      let query = 'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment" FROM notes WHERE date = $1';
+      let query = 'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment", is_idea as "isIdea" FROM notes WHERE date = $1';
       const params: any[] = [date];
 
       if (userId !== undefined) {
@@ -662,10 +683,10 @@ export class PostgresStorage implements IStorage {
 
   async createNote(note: InsertNote): Promise<Note> {
     try {
-      const { content, date, userId, isMoment } = note;
+      const { content, date, userId, isMoment, isIdea } = note;
       const result = await this.executeQuery(
-        'INSERT INTO notes (content, date, user_id, timestamp, analysis, is_moment) VALUES ($1, $2, $3, NOW(), NULL, $4) RETURNING *',
-        [content, date, userId, isMoment || false]
+        'INSERT INTO notes (content, date, user_id, timestamp, analysis, is_moment, is_idea) VALUES ($1, $2, $3, NOW(), NULL, $4, $5) RETURNING *',
+        [content, date, userId, isMoment || false, isIdea || false]
       );
       return result.rows[0];
     } catch (error) {
@@ -983,13 +1004,56 @@ export class PostgresStorage implements IStorage {
   async getMoments(userId: number): Promise<Note[]> {
     try {
       const result = await this.executeQuery(
-        'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment" FROM notes WHERE user_id = $1 AND is_moment = true ORDER BY timestamp DESC',
+        'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment", is_idea as "isIdea" FROM notes WHERE user_id = $1 AND is_moment = true ORDER BY timestamp DESC',
         [userId]
       );
       
       return result.rows;
     } catch (error) {
       console.error(`Error getting moments for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  // Ideas related methods
+  async toggleIdea(noteId: number, userId: number): Promise<{ success: boolean; isNowIdea?: boolean }> {
+    try {
+      // First check if the note exists and belongs to the user
+      const checkResult = await this.executeQuery(
+        'SELECT is_idea FROM notes WHERE id = $1 AND user_id = $2',
+        [noteId, userId]
+      );
+      
+      if (checkResult.rows.length === 0) {
+        return { success: false };
+      }
+      
+      // Toggle the is_idea value
+      const currentValue = checkResult.rows[0].is_idea || false;
+      const newValue = !currentValue;
+      
+      await this.executeQuery(
+        'UPDATE notes SET is_idea = $1 WHERE id = $2 AND user_id = $3',
+        [newValue, noteId, userId]
+      );
+      
+      return { success: true, isNowIdea: newValue };
+    } catch (error) {
+      console.error(`Error toggling idea for note ${noteId}:`, error);
+      return { success: false };
+    }
+  }
+
+  async getIdeas(userId: number): Promise<Note[]> {
+    try {
+      const result = await this.executeQuery(
+        'SELECT id, content, timestamp, date, user_id as "userId", analysis, is_moment as "isMoment", is_idea as "isIdea" FROM notes WHERE user_id = $1 AND is_idea = true ORDER BY timestamp DESC',
+        [userId]
+      );
+      
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting ideas for user ${userId}:`, error);
       return [];
     }
   }

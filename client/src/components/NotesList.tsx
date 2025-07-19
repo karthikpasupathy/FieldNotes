@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { type Note } from "@shared/schema";
 import NoteInput from "./NoteInput";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2, RefreshCw, Sparkles, BrainCircuit } from "lucide-react";
+import { Trash2, RefreshCw, Sparkles, BrainCircuit, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -47,6 +47,7 @@ export default function NotesList({
       queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/recent-days'] });
       queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       
       toast({
         title: "Note Deleted",
@@ -83,6 +84,7 @@ export default function NotesList({
       // Refresh the notes list and moments
       queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/moments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       
       // Use the isNowMoment property from the response
       const isNowMoment = data.isNowMoment;
@@ -92,6 +94,47 @@ export default function NotesList({
         description: isNowMoment 
           ? "Your note has been marked as a moment." 
           : "Your note is no longer marked as a moment.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Toggle idea status mutation
+  const toggleIdeaMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      const response = await fetch(`/api/ideas/${noteId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to toggle idea status");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Refresh the notes list and ideas
+      queryClient.invalidateQueries({ queryKey: [`/api/notes/${date}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
+      
+      // Use the isNowIdea property from the response
+      const isNowIdea = data.isNowIdea;
+      
+      toast({
+        title: isNowIdea ? "Idea Added" : "Idea Removed",
+        description: isNowIdea 
+          ? "Your note has been marked as an idea." 
+          : "Your note is no longer marked as an idea.",
       });
     },
     onError: (error: Error) => {
@@ -165,7 +208,11 @@ export default function NotesList({
             notes.map((note) => (
               <div 
                 key={note.id} 
-                className={note.isMoment ? 'moment-card' : 'note-card-modern'}
+                className={
+                  note.isMoment ? 'moment-card' : 
+                  note.isIdea ? 'idea-card' : 
+                  'note-card-modern'
+                }
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 pr-3">
@@ -178,6 +225,12 @@ export default function NotesList({
                         <span className="text-xs bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 px-3 py-1 rounded-full flex items-center font-medium border border-amber-200">
                           <Sparkles className="h-3 w-3 mr-1.5" />
                           Moment
+                        </span>
+                      )}
+                      {note.isIdea && (
+                        <span className="text-xs bg-gradient-to-r from-purple-100 to-violet-100 text-purple-700 px-3 py-1 rounded-full flex items-center font-medium border border-purple-200">
+                          <Wand2 className="h-3 w-3 mr-1.5" />
+                          Idea
                         </span>
                       )}
                     </div>
@@ -196,6 +249,20 @@ export default function NotesList({
                       title={note.isMoment ? "Remove from moments" : "Mark as special moment"}
                     >
                       <Sparkles className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-9 w-9 p-0 rounded-xl transition-all duration-200 ${
+                        note.isIdea 
+                          ? 'text-purple-500 hover:text-purple-600 hover:bg-purple-100' 
+                          : 'text-slate-400 hover:text-purple-500 hover:bg-purple-50'
+                      }`}
+                      onClick={() => toggleIdeaMutation.mutate(note.id)}
+                      disabled={toggleIdeaMutation.isPending}
+                      title={note.isIdea ? "Remove from ideas" : "Mark as an idea"}
+                    >
+                      <Wand2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

@@ -42,15 +42,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // No longer resetting storage at startup so user data persists
   
-  // Attempt to alter the notes table to add is_moment column if it doesn't exist
+  // Attempt to alter the notes table to add is_moment and is_idea columns if they don't exist
   try {
     await primaryPool.query(`
       ALTER TABLE notes 
       ADD COLUMN IF NOT EXISTS is_moment BOOLEAN DEFAULT FALSE
     `);
-    console.log("Database schema updated to support Moments feature");
+    await primaryPool.query(`
+      ALTER TABLE notes 
+      ADD COLUMN IF NOT EXISTS is_idea BOOLEAN DEFAULT FALSE
+    `);
+    console.log("Database schema updated to support Moments and Ideas features");
   } catch (error) {
-    console.error("Error updating database schema for Moments:", error);
+    console.error("Error updating database schema for Moments and Ideas:", error);
   }
   
   // Password reset request endpoint
@@ -716,6 +720,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching moments:", error);
       res.status(500).json({ message: "Failed to fetch moments" });
+    }
+  });
+
+  // Ideas feature API endpoints
+  app.post("/api/ideas/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId, 10);
+      
+      if (isNaN(noteId)) {
+        return res.status(400).json({ message: "Invalid note ID" });
+      }
+      
+      const userId = req.user!.id;
+      const result = await storage.toggleIdea(noteId, userId);
+      
+      if (!result.success) {
+        return res.status(404).json({ message: "Note not found or you don't have permission to update it" });
+      }
+      
+      // Send a specific message based on whether the idea was added or removed
+      if (result.isNowIdea) {
+        res.status(200).json({ message: "Entry marked as an idea", isNowIdea: true, noteId });
+      } else {
+        res.status(200).json({ message: "Idea removed", isNowIdea: false, noteId });
+      }
+    } catch (error) {
+      console.error("Error toggling idea status:", error);
+      res.status(500).json({ message: "Failed to toggle idea status" });
+    }
+  });
+  
+  app.get("/api/ideas", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const ideas = await storage.getIdeas(userId);
+      res.json(ideas);
+    } catch (error) {
+      console.error("Error fetching ideas:", error);
+      res.status(500).json({ message: "Failed to fetch ideas" });
     }
   });
   

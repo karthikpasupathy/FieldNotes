@@ -20,6 +20,7 @@ export const notes = pgTable("notes", {
   userId: integer("user_id").notNull(),
   analysis: text("analysis"),
   isMoment: boolean("is_moment").default(false), // Flag to mark special "moment" entries
+  isIdea: boolean("is_idea").default(false), // Flag to mark important "idea" entries
 });
 
 export const periodAnalyses = pgTable("period_analyses", {
@@ -44,6 +45,7 @@ export const insertNoteSchema = createInsertSchema(notes).pick({
   date: true,
   userId: true,
   isMoment: true,
+  isIdea: true,
 });
 
 export const noteContentSchema = z.object({

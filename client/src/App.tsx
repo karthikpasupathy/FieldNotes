@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
+import IdeasPage from "@/pages/ideas-page";
 import SearchPage from "@/pages/search-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -49,6 +50,7 @@ function App() {
           <ProtectedRoute path="/day/:date" component={Home} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <ProtectedRoute path="/moments" component={MomentsPage} />
+          <ProtectedRoute path="/ideas" component={IdeasPage} />
           <ProtectedRoute path="/search" component={SearchPage} />
           
           {/* Public Routes */}
