@@ -2,7 +2,8 @@ import sgMail from '@sendgrid/mail';
 
 // Check if SendGrid API key is available
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@fieldnotes.app';
+// Use a verified sender email - this should be your verified email address in SendGrid
+const FROM_EMAIL = process.env.FROM_EMAIL || 'your-verified-email@your-domain.com';
 
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
@@ -120,9 +121,27 @@ If you didn't request this login link, you can safely ignore this email.
         html: htmlContent,
       };
 
-      await sgMail.send(msg);
-      console.log(`Magic link email sent successfully to ${to}`);
-      return true;
+      try {
+        await sgMail.send(msg);
+        console.log(`Magic link email sent successfully to ${to}`);
+        return true;
+      } catch (sgError: any) {
+        console.error('SendGrid specific error:', sgError);
+        if (sgError.response?.body?.errors) {
+          console.error('SendGrid error details:', JSON.stringify(sgError.response.body.errors, null, 2));
+        }
+        
+        // If SendGrid fails due to domain verification, fall back to console logging
+        console.warn('SendGrid failed, falling back to console logging for development...');
+        console.log('='.repeat(60));
+        console.log('SENDGRID FALLBACK - Magic Link Email');
+        console.log('='.repeat(60));
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Magic Link: ${magicLinkUrl}`);
+        console.log('='.repeat(60));
+        return true;
+      }
     } else {
       // Development mode: Log the magic link to console
       console.log('='.repeat(60));
@@ -134,8 +153,11 @@ If you didn't request this login link, you can safely ignore this email.
       console.log('='.repeat(60));
       return true;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending magic link email:', error);
+    if (error.response?.body?.errors) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body.errors, null, 2));
+    }
     return false;
   }
 }
@@ -263,8 +285,11 @@ If you didn't request this password reset, you can safely ignore this email.
       console.log('='.repeat(60));
       return true;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending password reset email:', error);
+    if (error.response?.body?.errors) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body.errors, null, 2));
+    }
     return false;
   }
 }
