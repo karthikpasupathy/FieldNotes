@@ -353,7 +353,7 @@ export default function Home() {
             </div>
               
             {/* Main content area */}
-            <div className="flex-1 pt-6 pb-24 md:pb-6 overflow-auto md:h-[calc(100vh-80px)]">
+            <div className="flex-1 pt-6 pb-24 md:pb-6 overflow-auto md:h-[calc(100vh-80px)] scroll-area-clean">
               {/* Modern Mobile Calendar (Collapsible) */}
               {isCalendarOpen && (
                 <div className="md:hidden transition-all duration-300 mb-6">

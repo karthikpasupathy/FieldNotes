@@ -372,7 +372,7 @@ export default function MomentsPage() {
                   </div>
                 </div>
                 
-                <ScrollArea className="h-[calc(100vh-320px)]">
+                <ScrollArea className="h-[calc(100vh-320px)] scroll-area-clean">
                   <div className="p-6 space-y-8">
                     {sortedDates.map(date => (
                       <div key={date} className="space-y-4">
@@ -443,7 +443,7 @@ export default function MomentsPage() {
                   </div>
                 </div>
                 
-                <ScrollArea className="h-[calc(100vh-400px)]">
+                <ScrollArea className="h-[calc(100vh-400px)] scroll-area-clean">
                   <div className="p-6">
                     {analysisLoading ? (
                       <div className="analysis-box-modern">

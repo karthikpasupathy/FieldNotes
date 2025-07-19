@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbars while maintaining scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -211,5 +226,15 @@
     @apply bg-white/70 backdrop-blur-sm border border-slate-200 text-slate-700 font-medium px-4 py-2;
     @apply rounded-xl shadow-sm hover:shadow-md hover:bg-white/90 hover:border-slate-300;
     @apply transition-all duration-200;
+  }
+
+  /* Clean scrollable areas */
+  .scroll-area-clean {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scroll-area-clean::-webkit-scrollbar {
+    display: none;
   }
 }
