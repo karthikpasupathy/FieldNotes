@@ -9,125 +9,207 @@
 
   body {
     @apply font-sans antialiased;
-    background: #eaf0f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
     min-height: 100vh;
-    color: #000000;
+    color: #1e293b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Modern shadow styles */
+  .shadow-modern {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-modern-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .shadow-modern-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 }
 
 @layer components {
-  /* Accent color utilities */
+  /* Modern Accent Styles */
+  .accent-gradient {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  }
+  
   .accent-text {
-    @apply text-yellow-400;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
-  .accent-bg {
-    @apply bg-yellow-400;
+  /* Modern Glass Effect Cards */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
   
-  .accent-border {
-    @apply border-yellow-400;
+  /* Modern Button Styles */
+  .btn-modern {
+    @apply px-6 py-3 rounded-xl font-medium text-white transition-all duration-300 transform hover:scale-105;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
   }
   
-  /* Analysis box */
-  .analysis-box {
-    @apply bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4 relative;
+  .btn-modern:hover {
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
   }
   
-  .analysis-box-header {
-    @apply flex justify-between items-center mb-2;
+  .btn-modern-secondary {
+    @apply px-6 py-3 rounded-xl font-medium text-slate-700 bg-white border border-slate-200 transition-all duration-300 transform hover:scale-105;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
   
-  .analysis-box-title {
-    @apply text-blue-800 font-medium;
+  .btn-modern-secondary:hover {
+    @apply bg-slate-50;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   }
   
-  .analysis-content {
-    @apply text-gray-700 text-sm leading-relaxed;
+  /* Modern Card Design */
+  .modern-card {
+    @apply bg-white rounded-2xl border border-slate-200/60 transition-all duration-300;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   
-  /* Gradient buttons */
-  .btn-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden rounded-lg;
-    background-size: 200% auto;
-    animation: gradientShift 5s ease infinite;
+  .modern-card:hover {
+    @apply border-slate-300/60;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
   }
   
-  @keyframes gradientShift {
-    0% {
-      background-position: 0% center;
-    }
-    50% {
-      background-position: 100% center;
-    }
-    100% {
-      background-position: 0% center;
-    }
+  /* Modern Analysis Box */
+  .analysis-box-modern {
+    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/60 rounded-2xl p-6 relative overflow-hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   
-  /* Gradient cards */
-  .card-gradient {
-    @apply bg-white border shadow-md hover:shadow-lg transition-all relative overflow-hidden;
-    background: linear-gradient(135deg, rgb(255, 255, 255), rgb(250, 250, 250), rgb(245, 253, 254));
-    background-size: 300% 300%;
-    animation: cardGradientMove 15s ease infinite;
-  }
-  
-  @keyframes cardGradientMove {
-    0% {
-      background-position: 0% 0%;
-    }
-    50% {
-      background-position: 100% 100%;
-    }
-    100% {
-      background-position: 0% 0%;
-    }
-  }
-  
-  /* Gradient outlines for important elements */
-  .outline-gradient {
-    @apply border-2 shadow-sm;
-    border-image: linear-gradient(to right, #3b4e87, #4a61a3) 1;
-  }
-  
-  /* Primary buttons with gradient */
-  .button[data-variant="default"] {
-    background: linear-gradient(to right, #3b4e87, #4a61a3);
-    @apply hover:opacity-90 transition-opacity duration-300;
-  }
-  
-  /* Note cards with subtle gradients */
-  .note-card {
-    @apply rounded-lg p-4 transition-all duration-300 hover:shadow-md relative overflow-hidden;
-    background: #ffffff;
-    border: 1px solid rgba(209, 213, 219, 0.5);
-  }
-  
-  .note-card::before {
+  .analysis-box-modern::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(to right, #3b4e87, #4a61a3);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s ease;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   }
   
-  .note-card:hover::before {
-    transform: scaleX(1);
+  /* Modern Note Card */
+  .note-card-modern {
+    @apply bg-white rounded-xl p-4 border border-slate-200/60 transition-all duration-300 hover:border-slate-300/60 relative overflow-hidden;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   
-  /* Calendar day with notes */
-  .calendar-day-with-notes {
-    @apply relative;
+  .note-card-modern:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
   }
   
-  .calendar-day-with-notes::after {
+  /* Modern Moments Card */
+  .moment-card {
+    @apply bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl p-4 transition-all duration-300 relative overflow-hidden;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .moment-card:hover {
+    @apply border-amber-300/60;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+  
+  .moment-card::before {
     content: '';
-    @apply absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-yellow-400;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  }
+  
+  /* Modern Input Styles */
+  .input-modern {
+    @apply rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .input-modern:focus {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  /* Modern Navigation */
+  .nav-modern {
+    @apply bg-white/80 backdrop-filter backdrop-blur-md border-slate-200/60;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Calendar Enhancement */
+  .calendar-day-modern {
+    @apply relative transition-all duration-200 hover:bg-slate-100 rounded-lg;
+  }
+  
+  .calendar-day-modern.has-notes::after {
+    content: '';
+    @apply absolute bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+  }
+  
+  .calendar-day-modern.is-today {
+    @apply bg-blue-100 text-blue-900 font-semibold;
+  }
+  
+  /* Loading Animation */
+  .loading-modern {
+    @apply animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  /* Floating Action Button */
+  .fab-modern {
+    @apply fixed bottom-6 right-6 w-14 h-14 rounded-full text-white shadow-lg transition-all duration-300 transform hover:scale-110;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+  }
+  
+  .fab-modern:hover {
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  }
+
+  /* Modern Navigation Buttons */
+  .nav-btn-mobile {
+    @apply flex items-center justify-center py-3 px-3 rounded-xl transition-all duration-200;
+  }
+
+  .nav-btn-mobile:hover {
+    @apply bg-slate-100;
+  }
+
+  .nav-btn-mobile:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Modern Button Styles */
+  .btn-modern {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium px-4 py-2;
+    @apply rounded-xl shadow-sm hover:shadow-md hover:from-blue-700 hover:to-purple-700;
+    @apply transition-all duration-200 border-0;
+  }
+
+  .btn-modern-secondary {
+    @apply bg-white/70 backdrop-blur-sm border border-slate-200 text-slate-700 font-medium px-4 py-2;
+    @apply rounded-xl shadow-sm hover:shadow-md hover:bg-white/90 hover:border-slate-300;
+    @apply transition-all duration-200;
   }
 }

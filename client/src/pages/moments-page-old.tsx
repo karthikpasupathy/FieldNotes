@@ -44,6 +44,8 @@ export default function MomentsPage() {
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
   
+  // We're no longer auto-triggering analysis, only doing it on user request
+
   // Toggle moment status mutation
   const toggleMomentMutation = useMutation({
     mutationFn: async (noteId: number) => {
@@ -211,6 +213,7 @@ export default function MomentsPage() {
       </div>
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+
         {moments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             {/* Beautiful Empty State */}
@@ -352,147 +355,123 @@ export default function MomentsPage() {
               </div>
             </div>
           </div>
-        ) : (
-          // Desktop layout with modern design
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Moments List - Desktop */}
-            <div className="lg:col-span-2">
-              <div className="modern-card">
-                <div className="p-6 border-b border-slate-200/60">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-800">Your Moments</h2>
-                        <p className="text-sm text-slate-500">{moments.length} moment{moments.length !== 1 ? 's' : ''} captured</p>
-                      </div>
-                    </div>
+      ) : (
+        // Desktop layout - Side-by-side
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <div className="flex items-center justify-center h-5 w-5 mr-2 bg-yellow-400 text-white rounded-sm">
+                    <Sparkles className="h-3.5 w-3.5" />
                   </div>
-                </div>
-                
-                <ScrollArea className="h-[calc(100vh-320px)]">
-                  <div className="p-6 space-y-8">
-                    {sortedDates.map(date => (
-                      <div key={date} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-slate-700 pb-3 border-b border-slate-200/60">
-                          {formatDateForDisplay(new Date(date))}
-                        </h3>
-                        <div className="space-y-4">
-                          {momentsByDate[date].map(moment => (
-                            <div 
-                              key={moment.id} 
-                              className="moment-card cursor-pointer"
-                              onClick={() => handleMomentClick(moment.id)}
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="text-sm text-slate-500 font-medium">
-                                  {new Date(moment.timestamp).toLocaleTimeString([], { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleMomentMutation.mutate(moment.id);
-                                  }}
-                                  className="h-9 w-9 p-0 hover:bg-amber-100 rounded-xl transition-colors"
-                                  title="Remove from moments"
-                                >
-                                  <Sparkles className="h-4 w-4 text-amber-500" />
-                                </Button>
-                              </div>
-                              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{moment.content}</p>
+                  Your Moments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-240px)]">
+                  {sortedDates.map(date => (
+                    <div key={date} className="mb-6">
+                      <h3 className="text-md font-semibold mb-2 pb-1 border-b border-muted">
+                        {formatDateForDisplay(new Date(date))}
+                      </h3>
+                      {momentsByDate[date].map(moment => (
+                        <div 
+                          key={moment.id} 
+                          className={`mb-4 p-4 rounded-lg border ${
+                            selectedMomentId === moment.id ? 'border-yellow-400 bg-yellow-50' : 'border-border'
+                          } hover:border-yellow-300 transition-colors cursor-pointer`}
+                          onClick={() => handleMomentClick(moment.id)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(moment.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
                             </div>
-                          ))}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleMomentMutation.mutate(moment.id);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="Remove from moments"
+                            >
+                              <div className="flex items-center justify-center h-4 w-4 bg-yellow-400 text-white rounded-sm">
+                                <Sparkles className="h-3 w-3" />
+                              </div>
+                            </Button>
+                          </div>
+                          <p className="mt-2 whitespace-pre-wrap">{moment.content}</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-
-            {/* Analysis Panel - Desktop */}
-            <div className="lg:col-span-1">
-              <div className="modern-card sticky top-24">
-                <div className="p-6 border-b border-slate-200/60">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                        <BrainCircuit className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-slate-800">Analysis</h2>
-                        <p className="text-sm text-slate-500">AI insights</p>
-                      </div>
+                      ))}
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={handleRegenerateAnalysis}
-                      disabled={analysisLoading || moments.length === 0}
-                      className="h-9 w-9 p-0 hover:bg-blue-100 rounded-xl"
-                    >
-                      <RefreshCw className={`h-4 w-4 text-blue-600 ${analysisLoading ? 'animate-spin' : ''}`} />
-                    </Button>
-                  </div>
-                </div>
-                
-                <ScrollArea className="h-[calc(100vh-400px)]">
-                  <div className="p-6">
-                    {analysisLoading ? (
-                      <div className="analysis-box-modern">
-                        <div className="flex flex-col items-center justify-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-                          <p className="text-slate-600 text-center">Analyzing your moments...</p>
-                        </div>
-                      </div>
-                    ) : analysisError ? (
-                      <div className="analysis-box-modern">
-                        <div className="text-center py-6">
-                          <p className="text-red-600 mb-4">Failed to analyze moments</p>
-                          <Button 
-                            onClick={handleRegenerateAnalysis}
-                            className="btn-modern-secondary"
-                          >
-                            Try Again
-                          </Button>
-                        </div>
-                      </div>
-                    ) : momentsAnalysis?.analysis ? (
-                      <div className="analysis-box-modern">
-                        <div className="prose prose-sm max-w-none text-slate-700">
-                          <ReactMarkdown>{momentsAnalysis.analysis}</ReactMarkdown>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="analysis-box-modern">
-                        <div className="text-center py-6">
-                          <p className="text-slate-500 mb-4">
-                            Generate insights from your moments
-                          </p>
-                          <Button 
-                            onClick={handleRegenerateAnalysis}
-                            className="btn-modern"
-                            disabled={moments.length === 0}
-                          >
-                            Analyze Now
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  ))}
                 </ScrollArea>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
+
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Moments Analysis</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleRegenerateAnalysis}
+                    disabled={analysisLoading || moments.length === 0}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${analysisLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-240px)]">
+                  {analysisLoading ? (
+                    <div className="flex flex-col items-center justify-center p-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+                      <p className="text-sm text-center">Analyzing your moments...</p>
+                    </div>
+                  ) : analysisError ? (
+                    <div className="p-4 text-center">
+                      <p className="text-destructive mb-2">Failed to analyze moments</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRegenerateAnalysis}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : momentsAnalysis?.analysis ? (
+                    <Accordion type="single" collapsible defaultValue="analysis" className="w-full">
+                      <AccordionItem value="analysis">
+                        <AccordionTrigger className="font-semibold">Patterns & Insights</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown>{momentsAnalysis.analysis}</ReactMarkdown>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ) : (
+                    <p className="text-center text-muted-foreground p-4">
+                      {moments.length > 0 
+                        ? "Click the refresh button to generate an analysis of your moments."
+                        : "Mark some notes as moments to see an analysis here."}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
