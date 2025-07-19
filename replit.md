@@ -39,7 +39,7 @@ Preferred communication style: Simple, everyday language.
 - **Authorization**: Route-level protection with middleware
 
 ### AI Integration
-- **Provider**: OpenAI GPT-4
+- **Provider**: OpenAI GPT-4.1-mini
 - **Features**: 
   - Daily note analysis for insights and mood tracking
   - Period analysis (weekly/monthly) for pattern recognition
