@@ -25,7 +25,7 @@ export async function analyzeNotes(notes: Note[]): Promise<string> {
       .join("\n");
 
     const response = await openai.chat.completions.create({
-      model: "o3-mini",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
@@ -99,7 +99,7 @@ export async function analyzePeriodNotes(
         "Note any trends, changes in mood, or significant observations across the month, and identify any larger patterns.";
 
     const response = await openai.chat.completions.create({
-      model: "o3-mini", // Using the most capable model for more thorough analysis
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
@@ -153,7 +153,7 @@ export async function analyzeMoments(moments: Note[]): Promise<string> {
       .join("\n\n");
 
     const response = await openai.chat.completions.create({
-      model: "o3-mini", // Using the most capable model for analyzing special moments
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
