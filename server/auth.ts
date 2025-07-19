@@ -45,6 +45,10 @@ export async function generateResetToken() {
   return randomBytes(32).toString("hex");
 }
 
+export async function generateMagicLinkToken() {
+  return randomBytes(32).toString("hex");
+}
+
 export function setupAuth(app: Express) {
   // Use a secure random string for session secret or load from environment
   const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString("hex");

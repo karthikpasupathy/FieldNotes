@@ -10,6 +10,7 @@ import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
 import IdeasPage from "@/pages/ideas-page";
 import SearchPage from "@/pages/search-page";
+import MagicLinkHandler from "@/pages/magic-link-handler";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import InstallPrompt from "@/components/InstallPrompt";
@@ -56,6 +57,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
+          <Route path="/auth/magic-link/:token" component={MagicLinkHandler} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
