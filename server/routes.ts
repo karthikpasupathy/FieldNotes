@@ -205,9 +205,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (user) {
             // Link existing traditional user with MojoAuth
+            console.log("Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
             await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
-            // Refetch user to get updated data
-            user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
+            // Refetch user to get updated data - try multiple methods to ensure we get the user
+            let linkedUser = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
+            if (!linkedUser) {
+              linkedUser = await storage.getUser(user.id);
+            }
+            user = linkedUser;
+            console.log("User after linking:", user ? { id: user.id, email: user.email, mojoAuthId: user.mojoauthId } : 'null');
           } else {
             // Create new MojoAuth user
             user = await storage.createMojoAuthUser(
@@ -219,12 +225,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        if (!user) {
+          console.error("User object is null after creation/linking");
+          return res.status(500).json({ error: "Failed to create or retrieve user" });
+        }
+        
+        console.log("About to create session for user:", { id: user.id, email: user.email });
+        
         // Set up session for traditional auth compatibility
         req.login(user, (err) => {
           if (err) {
             console.error("Session login error:", err);
             return res.status(500).json({ error: "Failed to create session" });
           }
+          
+          console.log("Session created successfully for user:", user.id);
           
           res.json({
             authenticated: true,
@@ -233,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               email: user.email,
               name: user.name
             },
-            token: response.oauth.access_token
+            token: response.oauth?.access_token
           });
         });
       } else {
@@ -297,9 +312,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (user) {
           // Link existing traditional user with MojoAuth
+          console.log("Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
           await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
-          // Refetch user to get updated data
-          user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
+          // Refetch user to get updated data - try multiple methods to ensure we get the user
+          let linkedUser = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
+          if (!linkedUser) {
+            linkedUser = await storage.getUser(user.id);
+          }
+          user = linkedUser;
+          console.log("User after linking:", user ? { id: user.id, email: user.email, mojoAuthId: user.mojoauthId } : 'null');
         } else {
           // Create new MojoAuth user
           user = await storage.createMojoAuthUser(
@@ -311,12 +332,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      if (!user) {
+        console.error("User object is null after creation/linking");
+        return res.status(500).json({ error: "Failed to create or retrieve user" });
+      }
+      
+      console.log("About to create session for user:", { id: user.id, email: user.email });
+      
       // Set up session for traditional auth compatibility
       req.login(user, (err) => {
         if (err) {
           console.error("Session login error:", err);
           return res.status(500).json({ error: "Failed to create session" });
         }
+        
+        console.log("Session created successfully for user:", user.id);
         
         res.json({
           success: true,
@@ -325,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: user.email,
             name: user.name
           },
-          token: response.oauth.access_token
+          token: response.oauth?.access_token
         });
       });
     } catch (error: any) {

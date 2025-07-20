@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Mail, Phone, Key } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface MojoAuthResponse {
   success?: boolean;
@@ -231,9 +232,12 @@ export default function MojoAuthPage() {
           description: "Successfully authenticated! Redirecting...",
         });
         
-        // Redirect to home page
+        // Invalidate queries to refresh auth state
+        await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        
+        // Use a proper redirect that preserves session cookies
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.reload();
         }, 1000);
       } else {
         toast({
