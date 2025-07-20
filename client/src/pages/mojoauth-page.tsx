@@ -222,6 +222,7 @@ export default function MojoAuthPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otp, stateId }),
+        credentials: 'include', // Include cookies in request
       });
 
       const data: MojoAuthResponse = await response.json();
@@ -232,13 +233,14 @@ export default function MojoAuthPage() {
           description: "Successfully authenticated! Redirecting...",
         });
         
-        // Invalidate queries to refresh auth state
-        await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-        
-        // Use a proper redirect that preserves session cookies
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Wait a bit for session to be fully established
+        setTimeout(async () => {
+          // Invalidate queries to refresh auth state
+          await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          // Redirect to home page
+          window.location.href = "/";
+        }, 500);
       } else {
         toast({
           title: "Error",
