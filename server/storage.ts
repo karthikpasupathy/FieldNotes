@@ -657,26 +657,45 @@ export class PostgresStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     try {
-      const result = await this.executeQuery(`
-        INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        ON CONFLICT (replit_id) 
-        DO UPDATE SET 
-          email = EXCLUDED.email,
-          first_name = EXCLUDED.first_name,
-          last_name = EXCLUDED.last_name,
-          profile_image_url = EXCLUDED.profile_image_url,
-          updated_at = NOW()
-        RETURNING *
-      `, [
-        userData.replitId,
-        userData.email,
-        userData.firstName,
-        userData.lastName,
-        userData.profileImageUrl,
-        userData.authProvider || "replit"
-      ]);
-      return result.rows[0];
+      // First, check if a user with this email already exists
+      const existingUser = await this.getUserByEmail(userData.email);
+      
+      if (existingUser) {
+        // Update the existing user with Replit Auth data
+        const result = await this.executeQuery(`
+          UPDATE users SET 
+            replit_id = $1,
+            first_name = $2,
+            last_name = $3,
+            profile_image_url = $4,
+            auth_provider = 'both',
+            updated_at = NOW()
+          WHERE id = $5
+          RETURNING *
+        `, [
+          userData.replitId,
+          userData.firstName,
+          userData.lastName,
+          userData.profileImageUrl,
+          existingUser.id
+        ]);
+        return result.rows[0];
+      } else {
+        // Create new user with Replit Auth data
+        const result = await this.executeQuery(`
+          INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
+          RETURNING *
+        `, [
+          userData.replitId,
+          userData.email,
+          userData.firstName,
+          userData.lastName,
+          userData.profileImageUrl,
+          userData.authProvider || "replit"
+        ]);
+        return result.rows[0];
+      }
     } catch (error) {
       console.error('Error upserting user:', error);
       throw error;
