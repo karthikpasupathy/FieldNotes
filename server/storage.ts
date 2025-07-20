@@ -25,7 +25,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -115,6 +117,12 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.mojoAuthId === mojoAuthId,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
@@ -123,6 +131,26 @@ export class MemStorage implements IStorage {
       name: insertUser.name || null,
       resetToken: null,
       resetTokenExpiry: null 
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
+    const id = this.userCurrentId++;
+    const user: User = {
+      id,
+      username: null,
+      password: null,
+      email,
+      name: name || null,
+      resetToken: null,
+      resetTokenExpiry: null,
+      mojoAuthId,
+      phone: phone || null,
+      authProvider: 'mojoauth',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -603,17 +631,40 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE mojoauth_id = $1', [mojoAuthId]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user by MojoAuth ID:`, error);
+      return undefined;
+    }
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
-        [username, password, email, name || null]
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, auth_provider) VALUES ($1, $2, $3, $4, NULL, NULL, $5) RETURNING *',
+        [username, password, email, name || null, 'local']
       );
       return result.rows[0];
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user. Please try again later.');
+    }
+  }
+
+  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
+    try {
+      const result = await this.executeQuery(
+        'INSERT INTO users (email, mojoauth_id, name, phone, auth_provider, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
+        [email, mojoAuthId, name || null, phone || null, 'mojoauth']
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating MojoAuth user:', error);
+      throw new Error('Failed to create MojoAuth user. Please try again later.');
     }
   }
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, useLocation } from "wouter";
+import { Redirect, useLocation, Link } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -151,10 +151,16 @@ export default function AuthPage() {
                 </form>
               </Form>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-4 space-y-2">
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
+                <div className="text-sm text-gray-500">or</div>
+                <Link href="/mojoauth">
+                  <Button variant="outline" className="w-full">
+                    Sign in with Passwordless Auth
+                  </Button>
+                </Link>
               </div>
             </TabsContent>
 

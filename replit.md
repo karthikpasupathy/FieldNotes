@@ -111,6 +111,17 @@ Preferred communication style: Simple, everyday language.
 
 The application is architected for scalability with clear separation of concerns, comprehensive error handling, and a focus on user experience through responsive design and PWA capabilities.
 
+## MojoAuth Integration - July 20, 2025
+- Integrated MojoAuth passwordless authentication system alongside existing local authentication
+- Added support for Email Magic Links, Email OTP, and Phone OTP authentication methods
+- Extended database schema to support MojoAuth users with mojoauth_id and auth_provider fields
+- Created comprehensive API endpoints for all MojoAuth authentication flows
+- Built dedicated MojoAuth authentication page with modern UI components
+- Implemented session compatibility between MojoAuth and existing authentication
+- Added MojoAuth route to main application with passwordless authentication options
+- Updated user storage interface to handle both local and MojoAuth user creation
+- Enhanced existing authentication page with option to use passwordless authentication
+
 ## Bug Fixes - July 20, 2025
 - Fixed database schema mismatch in sync functions (removed non-existent columns like is_admin, created_at from users)
 - Added missing is_idea column to notes table synchronization

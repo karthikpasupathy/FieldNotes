@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note, mojoAuthEmailSchema, mojoAuthPhoneSchema, mojoAuthOTPSchema, mojoAuthStatusSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
@@ -10,6 +10,20 @@ import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
 import { db, primaryPool } from "./db";
+import { 
+  sendMagicLink, 
+  checkMagicLinkStatus, 
+  resendMagicLink, 
+  sendEmailOTP, 
+  verifyEmailOTP, 
+  resendEmailOTP, 
+  sendPhoneOTP, 
+  verifyPhoneOTP, 
+  resendPhoneOTP, 
+  verifyToken, 
+  authenticateMojoAuth, 
+  isMojoAuthConfigured 
+} from "./mojoauth";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -128,6 +142,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error resetting password:", error);
       res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Check MojoAuth configuration status
+  app.get("/api/auth/mojoauth/status", (req, res) => {
+    res.json({ 
+      configured: isMojoAuthConfigured(),
+      available: !!process.env.MOJOAUTH_API_KEY 
+    });
+  });
+
+  // MojoAuth Magic Link routes
+  app.post("/api/auth/mojoauth/magic-link/send", async (req, res) => {
+    try {
+      const { email, redirectUrl } = mojoAuthEmailSchema.parse(req.body);
+      
+      const response = await sendMagicLink(email, redirectUrl);
+      res.json({ 
+        success: true, 
+        stateId: response.state_id,
+        message: "Magic link sent to your email" 
+      });
+    } catch (error: any) {
+      console.error("Magic link send error:", error);
+      res.status(400).json({ 
+        error: error.message || "Failed to send magic link" 
+      });
+    }
+  });
+
+  app.post("/api/auth/mojoauth/magic-link/status", async (req, res) => {
+    try {
+      const { stateId } = mojoAuthStatusSchema.parse(req.body);
+      
+      const response = await checkMagicLinkStatus(stateId);
+      
+      if (response.authenticated) {
+        // User successfully authenticated, handle user creation/login
+        const mojoAuthUser = response.user;
+        
+        // Check if user already exists
+        let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+        
+        if (!user) {
+          // Create new user
+          user = await storage.createMojoAuthUser(
+            mojoAuthUser.email,
+            mojoAuthUser.id,
+            mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+            mojoAuthUser.phone
+          );
+        }
+        
+        // Set up session for traditional auth compatibility
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Session login error:", err);
+            return res.status(500).json({ error: "Failed to create session" });
+          }
+          
+          res.json({
+            authenticated: true,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name
+            },
+            token: response.oauth.access_token
+          });
+        });
+      } else {
+        res.json({ authenticated: false });
+      }
+    } catch (error: any) {
+      console.error("Magic link status error:", error);
+      res.status(400).json({ 
+        error: error.message || "Failed to check magic link status" 
+      });
+    }
+  });
+
+  app.post("/api/auth/mojoauth/email-otp/send", async (req, res) => {
+    try {
+      const { email } = mojoAuthEmailSchema.parse(req.body);
+      
+      const response = await sendEmailOTP(email);
+      res.json({ 
+        success: true, 
+        stateId: response.state_id,
+        message: "OTP sent to your email" 
+      });
+    } catch (error: any) {
+      console.error("Email OTP send error:", error);
+      res.status(400).json({ 
+        error: error.message || "Failed to send email OTP" 
+      });
+    }
+  });
+
+  app.post("/api/auth/mojoauth/email-otp/verify", async (req, res) => {
+    try {
+      const { otp, stateId } = mojoAuthOTPSchema.parse(req.body);
+      
+      const response = await verifyEmailOTP(otp, stateId);
+      const mojoAuthUser = response.user;
+      
+      // Check if user already exists
+      let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+      
+      if (!user) {
+        // Create new user
+        user = await storage.createMojoAuthUser(
+          mojoAuthUser.email,
+          mojoAuthUser.id,
+          mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+          mojoAuthUser.phone
+        );
+      }
+      
+      // Set up session for traditional auth compatibility
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ error: "Failed to create session" });
+        }
+        
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          },
+          token: response.oauth.access_token
+        });
+      });
+    } catch (error: any) {
+      console.error("Email OTP verification error:", error);
+      res.status(400).json({ 
+        error: error.message || "Invalid OTP or expired" 
+      });
     }
   });
 
