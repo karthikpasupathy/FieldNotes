@@ -14,6 +14,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import InstallPrompt from "@/components/InstallPrompt";
 import UpdateNotification from "@/components/UpdateNotification";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
 // Component for the root route that redirects to proper location
@@ -37,33 +38,35 @@ function RootRedirect() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <UpdateNotification />
-        <Switch>
-          {/* Root redirect to current day */}
-          <Route path="/">
-            <RootRedirect />
-          </Route>
-          
-          {/* Protected Routes */}
-          <ProtectedRoute path="/day/:date" component={Home} />
-          <ProtectedRoute path="/profile" component={ProfilePage} />
-          <ProtectedRoute path="/moments" component={MomentsPage} />
-          <ProtectedRoute path="/ideas" component={IdeasPage} />
-          <ProtectedRoute path="/search" component={SearchPage} />
-          
-          {/* Public Routes */}
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password" component={ResetPasswordPage} />
-          
-          {/* Fallback to 404 */}
-          <Route component={NotFound} />
-        </Switch>
-        <InstallPrompt />
-      </AuthProvider>
-      <Toaster />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <UpdateNotification />
+          <Switch>
+            {/* Root redirect to current day */}
+            <Route path="/">
+              <RootRedirect />
+            </Route>
+            
+            {/* Protected Routes */}
+            <ProtectedRoute path="/day/:date" component={Home} />
+            <ProtectedRoute path="/profile" component={ProfilePage} />
+            <ProtectedRoute path="/moments" component={MomentsPage} />
+            <ProtectedRoute path="/ideas" component={IdeasPage} />
+            <ProtectedRoute path="/search" component={SearchPage} />
+            
+            {/* Public Routes */}
+            <Route path="/auth" component={AuthPage} />
+            <Route path="/reset-password" component={ResetPasswordPage} />
+            
+            {/* Fallback to 404 */}
+            <Route component={NotFound} />
+          </Switch>
+          <InstallPrompt />
+        </AuthProvider>
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

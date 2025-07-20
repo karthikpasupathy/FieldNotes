@@ -101,9 +101,12 @@ export default function Home() {
       });
       
       // Make a direct fetch with regenerate=true parameter
-      const response = await fetch(`/api/analyze/${currentDate}?regenerate=true`);
+      const response = await fetch(`/api/analyze/${currentDate}?regenerate=true`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
-        throw new Error('Failed to regenerate analysis');
+        const errorText = await response.text();
+        throw new Error(`Failed to regenerate analysis: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();

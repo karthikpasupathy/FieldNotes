@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { cleanup } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -73,5 +74,24 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM signal. Starting graceful shutdown...');
+    cleanup();
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT signal. Starting graceful shutdown...');
+    cleanup();
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
   });
 })();

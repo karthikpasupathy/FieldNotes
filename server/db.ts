@@ -210,18 +210,17 @@ async function syncDatabases(sourcePool: any, targetPool: any): Promise<void> {
       
       // Use upsert (insert or update) pattern with ON CONFLICT
       await targetPool.query(
-        `INSERT INTO users (id, username, email, password, reset_token, reset_token_expiry, is_admin, created_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO users (id, username, email, password, name, reset_token, reset_token_expiry) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (id) DO UPDATE SET 
            username = $2, 
            email = $3, 
            password = $4, 
-           reset_token = $5, 
-           reset_token_expiry = $6, 
-           is_admin = $7, 
-           created_at = $8`,
-        [id, userData.username, userData.email, userData.password, userData.reset_token, 
-         userData.reset_token_expiry, userData.is_admin, userData.created_at]
+           name = $5,
+           reset_token = $6, 
+           reset_token_expiry = $7`,
+        [id, userData.username, userData.email, userData.password, userData.name,
+         userData.reset_token, userData.reset_token_expiry]
       );
     }
     
@@ -231,17 +230,18 @@ async function syncDatabases(sourcePool: any, targetPool: any): Promise<void> {
       const { id, ...noteData } = note;
       
       await targetPool.query(
-        `INSERT INTO notes (id, content, timestamp, date, user_id, is_moment, analysis)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO notes (id, content, timestamp, date, user_id, is_moment, is_idea, analysis)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id) DO UPDATE SET
            content = $2,
            timestamp = $3,
            date = $4,
            user_id = $5,
            is_moment = $6,
-           analysis = $7`,
+           is_idea = $7,
+           analysis = $8`,
         [id, noteData.content, noteData.timestamp, noteData.date, 
-         noteData.user_id, noteData.is_moment, noteData.analysis]
+         noteData.user_id, noteData.is_moment, noteData.is_idea, noteData.analysis]
       );
     }
     
@@ -287,9 +287,9 @@ function checkDatabaseHealth() {
         primaryDbState = DB_STATE.CONNECTED;
       }
       return true;
-    }).catch(() => {
+    }).catch((err) => {
       if (primaryDbState !== DB_STATE.FAILED) {
-        console.error('Primary database connection lost');
+        console.error('Primary database connection lost:', err.message);
         primaryDbState = DB_STATE.FAILED;
       }
       return false;
@@ -301,9 +301,9 @@ function checkDatabaseHealth() {
         secondaryDbState = DB_STATE.CONNECTED;
       }
       return true;
-    }).catch(() => {
+    }).catch((err) => {
       if (secondaryDbState !== DB_STATE.FAILED) {
-        console.error('Secondary database connection lost');
+        console.error('Secondary database connection lost:', err.message);
         secondaryDbState = DB_STATE.FAILED;
       }
       return false;
@@ -319,11 +319,29 @@ function checkDatabaseHealth() {
       activePool = secondaryPool;
       dbEvents.emit('failover', { from: 'primary', to: 'secondary', reason: 'health_check_failed' });
     }
+  }).catch((err) => {
+    console.error('Database health check failed:', err.message);
   });
 }
 
 // Set up periodic health checks
-setInterval(checkDatabaseHealth, 60 * 1000); // Check every minute
+const healthCheckInterval = setInterval(checkDatabaseHealth, 60 * 1000); // Check every minute
+
+// Clean up function for graceful shutdown
+export function cleanup() {
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+  }
+  
+  // Close database connections
+  primaryPool.end().catch(err => {
+    console.error('Error closing primary pool:', err);
+  });
+  
+  secondaryPool.end().catch(err => {
+    console.error('Error closing secondary pool:', err);
+  });
+}
 
 // Interface for database with failover support
 export const db = {

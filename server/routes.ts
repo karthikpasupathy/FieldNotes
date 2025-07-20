@@ -20,10 +20,10 @@ declare module "express-session" {
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated() && req.user) {
     return next();
   }
-  res.status(401).json({ message: "Unauthorized" });
+  res.status(401).json({ message: "Not authenticated" });
 }
 
 // Middleware to check if user is admin
@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
       }
       
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const notes = await storage.getNotesByDate(date, userId);
       res.json(notes);
     } catch (error) {
@@ -176,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/dates", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const dates = await storage.getAllDates(userId);
       res.json(dates);
     } catch (error) {
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/recent-days", isAuthenticated, async (req, res) => {
     try {
       const limit = Number(req.query.limit) || 5;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const recentDays = await storage.getRecentDays(limit, userId);
       res.json(recentDays);
     } catch (error) {
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Endpoint to get dates with notes for calendar highlighting
   app.get("/api/dates-with-notes", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const dates = await storage.getDatesWithNotes(userId);
       res.json(dates);
     } catch (error) {
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
       }
       
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const notes = await storage.getNotesByDate(date, userId);
       
       if (notes.length === 0) {
@@ -260,11 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Endpoint to export all notes for a user
   app.get("/api/export-all", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
-      
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
+      const userId = req.user!.id;
       
       // Get all dates with notes for the user
       const dates = await storage.getDatesWithNotes(userId);
@@ -368,11 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
       }
       
-      const userId = req.user?.id;
-      
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
+      const userId = req.user!.id;
       
       // Check if we already have an analysis for this date (unless regeneration is forced)
       if (!forceRegenerate) {
