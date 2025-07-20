@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { createRequire } from 'module';
 
 // MojoAuth configuration
 const config = {
@@ -7,16 +8,28 @@ const config = {
 
 let ma: any;
 
-// Initialize MojoAuth SDK only if API key is available
-if (config.apiKey) {
-  try {
-    ma = require("mojoauth-sdk")(config);
-  } catch (error) {
-    console.error("Failed to initialize MojoAuth SDK:", error);
+// Initialize MojoAuth SDK
+function initializeMojoAuth() {
+  if (config.apiKey) {
+    try {
+      console.log("Attempting to initialize MojoAuth SDK with API key:", config.apiKey.substring(0, 10) + "...");
+      // Use createRequire for CommonJS modules in ES module context
+      const require = createRequire(import.meta.url);
+      const MojoAuthSDK = require("mojoauth-sdk");
+      console.log("MojoAuth SDK loaded:", typeof MojoAuthSDK);
+      ma = MojoAuthSDK(config);
+      console.log("MojoAuth SDK initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize MojoAuth SDK:", error);
+      console.error("Error details:", error.message);
+    }
+  } else {
+    console.warn("MOJOAUTH_API_KEY not found. MojoAuth authentication will not be available.");
   }
-} else {
-  console.warn("MOJOAUTH_API_KEY not found. MojoAuth authentication will not be available.");
 }
+
+// Initialize on module load
+initializeMojoAuth();
 
 // Interface for MojoAuth user
 export interface MojoAuthUser {
