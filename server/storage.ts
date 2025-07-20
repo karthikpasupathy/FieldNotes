@@ -686,13 +686,14 @@ export class PostgresStorage implements IStorage {
 
   async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
     try {
-      await this.executeQuery(
-        'UPDATE users SET mojoauth_id = $1, phone = $2, auth_provider = $3, updated_at = NOW() WHERE id = $4',
+      const result = await this.executeQuery(
+        'UPDATE users SET mojoauth_id = $1, phone = $2, auth_provider = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
         [mojoAuthId, phone || null, 'hybrid', userId]
       );
-      console.log(`Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
+      console.log(`✅ Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
+      console.log(`🔗 Updated user data:`, result.rows[0]);
     } catch (error) {
-      console.error('Error linking user with MojoAuth:', error);
+      console.error('❌ Error linking user with MojoAuth:', error);
       throw new Error('Failed to link user with MojoAuth. Please try again later.');
     }
   }

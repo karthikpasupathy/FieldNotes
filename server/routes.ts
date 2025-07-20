@@ -34,6 +34,11 @@ declare module "express-session" {
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  console.log("Auth check - Session ID:", req.sessionID);
+  console.log("Auth check - isAuthenticated:", req.isAuthenticated());
+  console.log("Auth check - req.user:", req.user ? { id: req.user.id, email: req.user.email } : null);
+  console.log("Auth check - Session passport:", req.session.passport);
+  
   if (req.isAuthenticated() && req.user) {
     return next();
   }
@@ -328,8 +333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: user.id, 
             email: user.email, 
             username: user.username,
-            mojoAuthId: user.mojoauthId,
-            authProvider: user.authProvider 
+            mojoAuthId: user.mojoauth_id,
+            authProvider: user.auth_provider 
           } : 'null');
         } else {
           // Create new MojoAuth user

@@ -92,7 +92,7 @@ export default function AuthPage() {
               <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-20 w-20" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-gray-900">
-              Field Notes
+              Daynotes
             </h1>
             <p className="mt-3 text-lg text-gray-600">
               Sign in securely to access your notes
