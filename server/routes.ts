@@ -18,20 +18,10 @@ declare module "express-session" {
   }
 }
 
-// Enhanced middleware to check if user is authenticated (both local and Replit Auth)
+// Enhanced middleware to check if user is authenticated (local and MojoAuth)
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  // Check for local authentication first
   if (req.isAuthenticated() && req.user) {
     return next();
-  }
-  
-  // Check for Replit authentication
-  const user = req.user as any;
-  if (user && user.claims && user.expires_at) {
-    const now = Math.floor(Date.now() / 1000);
-    if (now <= user.expires_at) {
-      return next();
-    }
   }
   
   res.status(401).json({ message: "Not authenticated" });
@@ -47,40 +37,20 @@ function isAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication (both local and Replit Auth)
+  // Set up authentication (local and MojoAuth)
   process.env.SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
   
-  // Set up session management first (required for both auth methods)
-  app.set("trust proxy", 1);
-  const { getSession } = await import("./replitAuth");
-  app.use(getSession());
-  
-  // Initialize passport
-  const passport = (await import("passport")).default;
-  app.use(passport.initialize());
-  app.use(passport.session());
-  
-  // Setup both authentication methods
+  // Setup local authentication and MojoAuth
   setupAuth(app);
-  const { setupReplitAuth } = await import("./replitAuth");
-  await setupReplitAuth(app);
   
   // No longer resetting storage at startup so user data persists
   
-  // Enhanced user route to work with both auth methods
+  // Enhanced user route to work with local and MojoAuth
   app.get("/api/user", isAuthenticated, async (req, res) => {
     try {
-      // For Replit Auth users, get user from database using claims
-      if (req.user && (req.user as any).claims) {
-        const claims = (req.user as any).claims;
-        const user = await storage.getUserByReplitId(claims.sub);
-        if (user) {
-          return res.json(user);
-        }
-      }
-      
-      // For local auth users, return user directly
-      res.json(req.user);
+      // Return user data without sensitive information
+      const { password, resetToken, resetTokenExpiry, ...userWithoutSensitiveData } = req.user!;
+      res.json(userWithoutSensitiveData);
     } catch (error) {
       console.error("Error getting user:", error);
       res.status(500).json({ message: "Failed to get user data" });

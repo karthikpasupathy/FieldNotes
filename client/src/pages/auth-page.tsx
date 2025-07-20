@@ -128,18 +128,6 @@ export default function AuthPage() {
                   <KeyRound className="mr-2 h-4 w-4" />
                   Use Username & Password
                 </Button>
-
-                <Separator className="my-4" />
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.location.href = "/api/replit/login"}
-                  >
-                    Sign in with Replit
-                  </Button>
-                </div>
               </div>
             </div>
           ) : (

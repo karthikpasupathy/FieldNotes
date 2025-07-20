@@ -45,6 +45,59 @@ export function MojoAuthComponent({ onSuccess }: MojoAuthComponentProps) {
     };
   }, []);
 
+  // Check for magic link redirect on component mount
+  useEffect(() => {
+    const checkForStateID = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stateId = urlParams.get('state_id');
+      
+      if (stateId && window.MojoAuth) {
+        setIsLoading(true);
+        try {
+          const configResponse = await fetch('/api/mojoauth/config');
+          const config = await configResponse.json();
+          const mojoauth = new window.MojoAuth(config.apiKey);
+          
+          const response = await mojoauth.signInWithStateID();
+          
+          if (response.authenticated) {
+            // Send the MojoAuth response to our backend for verification
+            const verifyResponse = await fetch('/api/mojoauth/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                access_token: response.oauth.access_token,
+                user_id: response.user.user_id,
+                identifier: response.user.identifier
+              }),
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (verifyResponse.ok) {
+              // Clean the URL and redirect
+              window.history.replaceState({}, document.title, window.location.pathname);
+              await refetchUser();
+              onSuccess?.();
+            } else {
+              const error = await verifyResponse.json();
+              setError(error.message || 'Authentication failed');
+            }
+          }
+        } catch (err) {
+          console.error('Magic link authentication error:', err);
+          setError('Magic link authentication failed');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (isScriptLoaded) {
+      checkForStateID();
+    }
+  }, [isScriptLoaded, refetchUser, onSuccess]);
+
   const initializeMojoAuth = async () => {
     try {
       if (window.MojoAuth) {
