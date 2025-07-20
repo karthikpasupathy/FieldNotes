@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
-import MojoAuthPage from "@/pages/mojoauth-page";
 import ProfilePage from "@/pages/profile-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import MomentsPage from "@/pages/moments-page";
@@ -58,7 +57,6 @@ function App() {
             
             {/* Public Routes */}
             <Route path="/auth" component={AuthPage} />
-            <Route path="/mojoauth" component={MojoAuthPage} />
             <Route path="/reset-password" component={ResetPasswordPage} />
             
             {/* Fallback to 404 */}

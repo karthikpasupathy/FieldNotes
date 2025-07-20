@@ -33,10 +33,12 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: Drizzle Kit for schema migrations
 
 ### Authentication System
-- **Strategy**: Local username/password authentication
-- **Password Security**: Scrypt hashing with random salt
-- **Session Management**: Server-side sessions stored in PostgreSQL
-- **Authorization**: Route-level protection with middleware
+- **Dual Authentication**: Both local username/password and Replit Auth (OpenID Connect)
+- **Local Auth**: Scrypt hashing with random salt for password security
+- **Replit Auth**: OpenID Connect integration with Replit's identity provider
+- **Session Management**: Server-side sessions stored in PostgreSQL with PostgreSQL session store
+- **Authorization**: Enhanced middleware supporting both authentication methods
+- **User Data**: Unified user model supporting both local and Replit user attributes
 
 ### AI Integration
 - **Provider**: OpenAI GPT-4.1-mini
@@ -111,18 +113,9 @@ Preferred communication style: Simple, everyday language.
 
 The application is architected for scalability with clear separation of concerns, comprehensive error handling, and a focus on user experience through responsive design and PWA capabilities.
 
-## MojoAuth Integration - July 20, 2025
-- Integrated MojoAuth passwordless authentication system alongside existing local authentication
-- Added support for Email Magic Links, Email OTP, and Phone OTP authentication methods
-- Extended database schema to support MojoAuth users with mojoauth_id and auth_provider fields
-- Created comprehensive API endpoints for all MojoAuth authentication flows
-- Built dedicated MojoAuth authentication page with modern UI components
-- Implemented session compatibility between MojoAuth and existing authentication
-- Added MojoAuth route to main application with passwordless authentication options
-- Updated user storage interface to handle both local and MojoAuth user creation
-- Enhanced existing authentication page with option to use passwordless authentication
+## Recent Changes - July 20, 2025
 
-## Bug Fixes - July 20, 2025
+### Bug Fixes
 - Fixed database schema mismatch in sync functions (removed non-existent columns like is_admin, created_at from users)
 - Added missing is_idea column to notes table synchronization
 - Fixed authentication middleware to properly check for req.user existence
@@ -134,12 +127,13 @@ The application is architected for scalability with clear separation of concerns
 - Enhanced database health check error logging
 - Added proper error boundaries around main React application
 
-## MojoAuth Bug Fixes - July 20, 2025
-- Fixed MojoAuth user response structure mapping (user_id vs id, identifier vs email)
-- Fixed MojoAuth error response handling to properly distinguish between errors and successful authentication
-- Resolved "email already exists" issue by implementing automatic account linking for existing users
-- Fixed session creation failures in MojoAuth authentication flow
-- Added comprehensive error handling for all MojoAuth authentication methods
-- Implemented linkUserWithMojoAuth functionality in both PostgreSQL and MemStorage
-- Enhanced debugging and logging for MojoAuth API responses
-- Successfully enabled dual authentication system (traditional + passwordless) for all users
+### Replit Auth Integration
+- Implemented dual authentication system supporting both local credentials and Replit Auth
+- Enhanced database schema with additional fields for Replit user data (replit_id, first_name, last_name, profile_image_url, auth_provider)
+- Created sessions table for PostgreSQL session store required by Replit Auth
+- Added Replit OpenID Connect authentication with automatic user provisioning
+- Updated authentication middleware to handle both local and Replit Auth sessions
+- Enhanced user profile component to support Replit user data and profile images
+- Added "Sign in with Replit" option to authentication page
+- Implemented separate logout flows for local and Replit authentication methods
+- Preserved existing user data and functionality while adding new authentication option

@@ -1,19 +1,35 @@
-import { pgTable, text, serial, integer, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, varchar, boolean, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table - supports both local auth and Replit Auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  // Local auth fields (existing)
   username: text("username").unique(),
   password: text("password"),
   email: text("email").notNull().unique(),
   name: text("name"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
-  // MojoAuth specific fields
-  mojoAuthId: text("mojoauth_id").unique(),
-  phone: text("phone"),
-  authProvider: text("auth_provider").default("local"), // "local" or "mojoauth"
+  // Replit auth fields (new)
+  replitId: varchar("replit_id").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  authProvider: varchar("auth_provider").notNull().default("local"), // "local" or "replit"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -44,8 +60,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   email: true,
   name: true,
-  mojoAuthId: true,
-  phone: true,
+});
+
+export const upsertUserSchema = createInsertSchema(users).pick({
+  replitId: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
   authProvider: true,
 });
 
@@ -68,27 +90,8 @@ export const userLoginSchema = z.object({
 });
 
 export const userRegisterSchema = insertUserSchema.extend({
-  password: z.string().min(6).optional(),
+  password: z.string().min(6),
   email: z.string().email(),
-});
-
-// MojoAuth specific schemas
-export const mojoAuthEmailSchema = z.object({
-  email: z.string().email(),
-  redirectUrl: z.string().url().optional(),
-});
-
-export const mojoAuthPhoneSchema = z.object({
-  phone: z.string().regex(/^\+\d{1,3}\d{4,14}$/, "Phone must be in international format (e.g., +1234567890)"),
-});
-
-export const mojoAuthOTPSchema = z.object({
-  otp: z.string().length(6, "OTP must be 6 digits"),
-  stateId: z.string(),
-});
-
-export const mojoAuthStatusSchema = z.object({
-  stateId: z.string(),
 });
 
 export const resetPasswordSchema = z.object({
@@ -111,6 +114,7 @@ export const periodAnalysisRequestSchema = z.object({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
 export type Note = typeof notes.$inferSelect;

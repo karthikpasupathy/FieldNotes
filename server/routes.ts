@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note, mojoAuthEmailSchema, mojoAuthPhoneSchema, mojoAuthOTPSchema, mojoAuthStatusSchema } from "@shared/schema";
+import { noteContentSchema, resetPasswordSchema, periodAnalysisRequestSchema, type Note } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, generateResetToken, hashPassword } from "./auth";
 import { randomBytes } from "crypto";
@@ -10,20 +10,6 @@ import { analyzeNotes, analyzePeriodNotes } from "./openai";
 import JSZip from "jszip";
 import session from "express-session";
 import { db, primaryPool } from "./db";
-import { 
-  sendMagicLink, 
-  checkMagicLinkStatus, 
-  resendMagicLink, 
-  sendEmailOTP, 
-  verifyEmailOTP, 
-  resendEmailOTP, 
-  sendPhoneOTP, 
-  verifyPhoneOTP, 
-  resendPhoneOTP, 
-  verifyToken, 
-  authenticateMojoAuth, 
-  isMojoAuthConfigured 
-} from "./mojoauth";
 
 // Extend the Express session type
 declare module "express-session" {
@@ -32,16 +18,22 @@ declare module "express-session" {
   }
 }
 
-// Middleware to check if user is authenticated
+// Enhanced middleware to check if user is authenticated (both local and Replit Auth)
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  console.log("Auth check - Session ID:", req.sessionID);
-  console.log("Auth check - isAuthenticated:", req.isAuthenticated());
-  console.log("Auth check - req.user:", req.user ? { id: req.user.id, email: req.user.email } : null);
-  console.log("Auth check - Session passport:", req.session.passport);
-  
+  // Check for local authentication first
   if (req.isAuthenticated() && req.user) {
     return next();
   }
+  
+  // Check for Replit authentication
+  const user = req.user as any;
+  if (user && user.claims && user.expires_at) {
+    const now = Math.floor(Date.now() / 1000);
+    if (now <= user.expires_at) {
+      return next();
+    }
+  }
+  
   res.status(401).json({ message: "Not authenticated" });
 }
 
@@ -55,11 +47,45 @@ function isAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication
+  // Set up authentication (both local and Replit Auth)
   process.env.SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
+  
+  // Set up session management first (required for both auth methods)
+  app.set("trust proxy", 1);
+  const { getSession } = await import("./replitAuth");
+  app.use(getSession());
+  
+  // Initialize passport
+  const passport = (await import("passport")).default;
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Setup both authentication methods
   setupAuth(app);
+  const { setupReplitAuth } = await import("./replitAuth");
+  await setupReplitAuth(app);
   
   // No longer resetting storage at startup so user data persists
+  
+  // Enhanced user route to work with both auth methods
+  app.get("/api/user", isAuthenticated, async (req, res) => {
+    try {
+      // For Replit Auth users, get user from database using claims
+      if (req.user && (req.user as any).claims) {
+        const claims = (req.user as any).claims;
+        const user = await storage.getUserByReplitId(claims.sub);
+        if (user) {
+          return res.json(user);
+        }
+      }
+      
+      // For local auth users, return user directly
+      res.json(req.user);
+    } catch (error) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ message: "Failed to get user data" });
+    }
+  });
   
   // Attempt to alter the notes table to add is_moment and is_idea columns if they don't exist
   try {
@@ -147,243 +173,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error resetting password:", error);
       res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  // Check MojoAuth configuration status
-  app.get("/api/auth/mojoauth/status", (req, res) => {
-    res.json({ 
-      configured: isMojoAuthConfigured(),
-      available: !!process.env.MOJOAUTH_API_KEY 
-    });
-  });
-
-  // MojoAuth Magic Link routes
-  app.post("/api/auth/mojoauth/magic-link/send", async (req, res) => {
-    try {
-      const { email, redirectUrl } = mojoAuthEmailSchema.parse(req.body);
-      
-      const response = await sendMagicLink(email, redirectUrl);
-      res.json({ 
-        success: true, 
-        stateId: response.state_id,
-        message: "Magic link sent to your email" 
-      });
-    } catch (error: any) {
-      console.error("Magic link send error:", error);
-      res.status(400).json({ 
-        error: error.message || "Failed to send magic link" 
-      });
-    }
-  });
-
-  app.post("/api/auth/mojoauth/magic-link/status", async (req, res) => {
-    try {
-      const { stateId } = mojoAuthStatusSchema.parse(req.body);
-      
-      const response = await checkMagicLinkStatus(stateId);
-      console.log("MojoAuth magic link full response:", JSON.stringify(response, null, 2));
-      
-      // Check for MojoAuth error response
-      if (response.code) {
-        return res.status(400).json({ 
-          error: response.message || "Authentication failed",
-          description: response.description 
-        });
-      }
-      
-      if (response.authenticated) {
-        // User successfully authenticated, handle user creation/login
-        if (!response.user) {
-          return res.status(400).json({ error: "Authentication failed - no user data" });
-        }
-        
-        const mojoAuthUser = response.user;
-        console.log("MojoAuth user response:", JSON.stringify(mojoAuthUser, null, 2));
-        
-        // Check if user already exists by MojoAuth ID first
-        let user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
-        
-        if (!user) {
-          // Check if user exists by email (traditional user)
-          user = await storage.getUserByEmail(mojoAuthUser.identifier);
-          
-          if (user) {
-            // Link existing traditional user with MojoAuth
-            console.log("Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
-            await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
-            // Refetch user to get updated data - try multiple methods to ensure we get the user
-            let linkedUser = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
-            if (!linkedUser) {
-              linkedUser = await storage.getUser(user.id);
-            }
-            user = linkedUser;
-            console.log("User after linking:", user ? { id: user.id, email: user.email, mojoAuthId: user.mojoauthId } : 'null');
-          } else {
-            // Create new MojoAuth user
-            user = await storage.createMojoAuthUser(
-              mojoAuthUser.identifier,
-              mojoAuthUser.user_id,
-              mojoAuthUser.identifier.split('@')[0],
-              mojoAuthUser.phone
-            );
-          }
-        }
-        
-        if (!user) {
-          console.error("User object is null after creation/linking");
-          return res.status(500).json({ error: "Failed to create or retrieve user" });
-        }
-        
-        console.log("About to create session for user:", { id: user.id, email: user.email });
-        
-        // Set up session for traditional auth compatibility
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Session login error:", err);
-            return res.status(500).json({ error: "Failed to create session" });
-          }
-          
-          console.log("Session created successfully for user:", user.id);
-          
-          res.json({
-            authenticated: true,
-            user: {
-              id: user.id,
-              email: user.email,
-              name: user.name
-            },
-            token: response.oauth?.access_token
-          });
-        });
-      } else {
-        res.json({ authenticated: false });
-      }
-    } catch (error: any) {
-      console.error("Magic link status error:", error);
-      res.status(400).json({ 
-        error: error.message || "Failed to check magic link status" 
-      });
-    }
-  });
-
-  app.post("/api/auth/mojoauth/email-otp/send", async (req, res) => {
-    try {
-      const { email } = mojoAuthEmailSchema.parse(req.body);
-      
-      const response = await sendEmailOTP(email);
-      res.json({ 
-        success: true, 
-        stateId: response.state_id,
-        message: "OTP sent to your email" 
-      });
-    } catch (error: any) {
-      console.error("Email OTP send error:", error);
-      res.status(400).json({ 
-        error: error.message || "Failed to send email OTP" 
-      });
-    }
-  });
-
-  app.post("/api/auth/mojoauth/email-otp/verify", async (req, res) => {
-    try {
-      const { otp, stateId } = mojoAuthOTPSchema.parse(req.body);
-      
-      const response = await verifyEmailOTP(otp, stateId);
-      console.log("MojoAuth verifyEmailOTP full response:", JSON.stringify(response, null, 2));
-      
-      // Check for MojoAuth error response
-      if (response.code) {
-        return res.status(400).json({ 
-          error: response.message || "Authentication failed",
-          description: response.description 
-        });
-      }
-      
-      // Check for successful authentication
-      if (!response.authenticated || !response.user) {
-        return res.status(400).json({ error: "Authentication failed" });
-      }
-      
-      const mojoAuthUser = response.user;
-      console.log("MojoAuth user response:", JSON.stringify(mojoAuthUser, null, 2));
-      
-      // Check if user already exists by MojoAuth ID first
-      let user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
-      
-      if (!user) {
-        // Check if user exists by email (traditional user)
-        user = await storage.getUserByEmail(mojoAuthUser.identifier);
-        
-        if (user) {
-          // Link existing traditional user with MojoAuth
-          console.log("✅ Found existing user by email:", { id: user.id, email: user.email, username: user.username });
-          console.log("🔗 Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
-          await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
-          
-          // Refetch user to get updated data - try multiple methods to ensure we get the user
-          let linkedUser = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
-          if (!linkedUser) {
-            console.log("⚠️ getUserByMojoAuthId failed, trying getUser by ID");
-            linkedUser = await storage.getUser(user.id);
-          }
-          
-          user = linkedUser;
-          console.log("✅ User after linking:", user ? { 
-            id: user.id, 
-            email: user.email, 
-            username: user.username,
-            mojoAuthId: user.mojoauth_id,
-            authProvider: user.auth_provider 
-          } : 'null');
-        } else {
-          // Create new MojoAuth user
-          user = await storage.createMojoAuthUser(
-            mojoAuthUser.identifier,
-            mojoAuthUser.user_id,
-            mojoAuthUser.identifier.split('@')[0],
-            mojoAuthUser.phone
-          );
-        }
-      }
-      
-      if (!user) {
-        console.error("User object is null after creation/linking");
-        return res.status(500).json({ error: "Failed to create or retrieve user" });
-      }
-      
-      console.log("About to create session for user:", { id: user.id, email: user.email });
-      
-      // Use Passport's req.login() for proper session integration
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Passport login error:", err);
-          return res.status(500).json({ error: "Failed to create session" });
-        }
-        
-        console.log("✅ Passport session created successfully for user:", user.id);
-        console.log("Session data:", { 
-          sessionId: req.sessionID, 
-          isAuthenticated: req.isAuthenticated(),
-          userId: req.user?.id,
-          userEmail: req.user?.email
-        });
-        
-        res.json({
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            username: user.username
-          }
-        });
-      });
-    } catch (error: any) {
-      console.error("Email OTP verification error:", error);
-      res.status(400).json({ 
-        error: error.message || "Invalid OTP or expired" 
-      });
     }
   });
 

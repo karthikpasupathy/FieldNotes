@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, useLocation, Link } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Mail, Shield, ArrowRight } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -95,39 +94,8 @@ export default function AuthPage() {
               Daynotes
             </h1>
             <p className="mt-3 text-lg text-gray-600">
-              Sign in securely to access your notes
+              Track your daily observations with timestamps
             </p>
-          </div>
-
-          {/* Passwordless Authentication - Primary Option */}
-          <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-lg">Passwordless Sign In</CardTitle>
-              <CardDescription>
-                Quick and secure authentication
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/mojoauth">
-                <Button className="w-full" size="lg">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Continue with Email
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-gray-500">Or use traditional login</span>
-            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -188,6 +156,20 @@ export default function AuthPage() {
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
+              </div>
+
+              <div className="mt-6">
+                <Separator className="my-4" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/replit/login"}
+                  >
+                    Sign in with Replit
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
@@ -280,6 +262,20 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+
+              <div className="mt-6">
+                <Separator className="my-4" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/replit/login"}
+                  >
+                    Sign in with Replit
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="forgot-password" className="space-y-4 mt-6">

@@ -25,14 +25,34 @@ export default function UserProfile() {
   }
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    // Check if user is using Replit Auth (has replitId) or local auth
+    if (user.replitId) {
+      // For Replit Auth, redirect to Replit logout
+      window.location.href = "/api/replit/logout";
+    } else {
+      // For local auth, use the existing logout mutation
+      logoutMutation.mutate();
+    }
   };
 
   const getInitials = () => {
+    // For Replit Auth users, use firstName + lastName
+    if (user.firstName && user.lastName) {
+      return (user.firstName[0] + user.lastName[0]).toUpperCase();
+    }
+    // For local auth users with name
     if (user.name) {
       return user.name.split(' ').map(n => n[0]).join('').toUpperCase();
     }
-    return user.username.substring(0, 2).toUpperCase();
+    // For local auth users with username
+    if (user.username) {
+      return user.username.substring(0, 2).toUpperCase();
+    }
+    // Fallback for Replit users
+    if (user.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "??";
   };
   
   const handleExportAllNotes = async () => {
@@ -100,7 +120,10 @@ export default function UserProfile() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border border-primary/10">
-            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getInitials()}`} alt={user.username} />
+            <AvatarImage 
+              src={user.profileImageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${getInitials()}`} 
+              alt={user.username || "User"} 
+            />
             <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
         </Button>
@@ -108,7 +131,12 @@ export default function UserProfile() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name || user.username}</p>
+            <p className="text-sm font-medium leading-none">
+              {user.firstName && user.lastName 
+                ? `${user.firstName} ${user.lastName}` 
+                : user.name || user.username || "User"
+              }
+            </p>
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
           </div>
         </DropdownMenuLabel>
@@ -117,10 +145,13 @@ export default function UserProfile() {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/reset-password")}>
-          <KeyRound className="mr-2 h-4 w-4" />
-          <span>Reset Password</span>
-        </DropdownMenuItem>
+        {/* Only show reset password for local auth users */}
+        {!user.replitId && (
+          <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/reset-password")}>
+            <KeyRound className="mr-2 h-4 w-4" />
+            <span>Reset Password</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem 
           className="cursor-pointer" 
           onClick={handleExportAllNotes}
