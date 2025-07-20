@@ -312,15 +312,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (user) {
           // Link existing traditional user with MojoAuth
-          console.log("Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
+          console.log("✅ Found existing user by email:", { id: user.id, email: user.email, username: user.username });
+          console.log("🔗 Linking existing user:", user.id, "with MojoAuth ID:", mojoAuthUser.user_id);
           await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
+          
           // Refetch user to get updated data - try multiple methods to ensure we get the user
           let linkedUser = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
           if (!linkedUser) {
+            console.log("⚠️ getUserByMojoAuthId failed, trying getUser by ID");
             linkedUser = await storage.getUser(user.id);
           }
+          
           user = linkedUser;
-          console.log("User after linking:", user ? { id: user.id, email: user.email, mojoAuthId: user.mojoauthId } : 'null');
+          console.log("✅ User after linking:", user ? { 
+            id: user.id, 
+            email: user.email, 
+            username: user.username,
+            mojoAuthId: user.mojoauthId,
+            authProvider: user.authProvider 
+          } : 'null');
         } else {
           // Create new MojoAuth user
           user = await storage.createMojoAuthUser(

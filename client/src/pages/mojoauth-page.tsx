@@ -238,8 +238,9 @@ export default function MojoAuthPage() {
           // Invalidate queries to refresh auth state
           await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
           
-          // Redirect to home page
-          window.location.href = "/";
+          // Redirect to today's entries page (home page)
+          const today = new Date().toISOString().split('T')[0];
+          window.location.href = `/day/${today}`;
         }, 500);
       } else {
         toast({
