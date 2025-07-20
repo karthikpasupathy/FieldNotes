@@ -28,6 +28,7 @@ export interface IStorage {
   getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User>;
+  linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -154,6 +155,21 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    user.mojoAuthId = mojoAuthId;
+    user.phone = phone || null;
+    user.authProvider = 'hybrid';
+    user.updatedAt = new Date();
+    
+    this.users.set(userId, user);
+    console.log(`Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
   }
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
@@ -665,6 +681,19 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error creating MojoAuth user:', error);
       throw new Error('Failed to create MojoAuth user. Please try again later.');
+    }
+  }
+
+  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
+    try {
+      await this.executeQuery(
+        'UPDATE users SET mojoauth_id = $1, phone = $2, auth_provider = $3, updated_at = NOW() WHERE id = $4',
+        [mojoAuthId, phone || null, 'hybrid', userId]
+      );
+      console.log(`Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
+    } catch (error) {
+      console.error('Error linking user with MojoAuth:', error);
+      throw new Error('Failed to link user with MojoAuth. Please try again later.');
     }
   }
 

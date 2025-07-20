@@ -182,17 +182,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // User successfully authenticated, handle user creation/login
         const mojoAuthUser = response.user;
         
-        // Check if user already exists
+        // Check if user already exists by MojoAuth ID first
         let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
         
         if (!user) {
-          // Create new user
-          user = await storage.createMojoAuthUser(
-            mojoAuthUser.email,
-            mojoAuthUser.id,
-            mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
-            mojoAuthUser.phone
-          );
+          // Check if user exists by email (traditional user)
+          user = await storage.getUserByEmail(mojoAuthUser.email);
+          
+          if (user) {
+            // Link existing traditional user with MojoAuth
+            await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.id, mojoAuthUser.phone);
+            // Refetch user to get updated data
+            user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+          } else {
+            // Create new MojoAuth user
+            user = await storage.createMojoAuthUser(
+              mojoAuthUser.email,
+              mojoAuthUser.id,
+              mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+              mojoAuthUser.phone
+            );
+          }
         }
         
         // Set up session for traditional auth compatibility
@@ -248,17 +258,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = await verifyEmailOTP(otp, stateId);
       const mojoAuthUser = response.user;
       
-      // Check if user already exists
+      // Check if user already exists by MojoAuth ID first
       let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
       
       if (!user) {
-        // Create new user
-        user = await storage.createMojoAuthUser(
-          mojoAuthUser.email,
-          mojoAuthUser.id,
-          mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
-          mojoAuthUser.phone
-        );
+        // Check if user exists by email (traditional user)
+        user = await storage.getUserByEmail(mojoAuthUser.email);
+        
+        if (user) {
+          // Link existing traditional user with MojoAuth
+          await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.id, mojoAuthUser.phone);
+          // Refetch user to get updated data
+          user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+        } else {
+          // Create new MojoAuth user
+          user = await storage.createMojoAuthUser(
+            mojoAuthUser.email,
+            mojoAuthUser.id,
+            mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+            mojoAuthUser.phone
+          );
+        }
       }
       
       // Set up session for traditional auth compatibility
