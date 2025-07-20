@@ -5,7 +5,6 @@ import {
   users, 
   type User, 
   type InsertUser,
-  type UpsertUser,
   periodAnalyses,
   type PeriodAnalysis,
   type InsertPeriodAnalysis
@@ -26,11 +25,10 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
-  getUserByReplitId(replitId: string): Promise<User | undefined>;
-  getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined>;
+  getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null>;
+  createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User>;
+  linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -120,60 +118,10 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.replitId === replitId,
+      (user) => user.mojoAuthId === mojoAuthId,
     );
-  }
-
-  async getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.mojoAuthUserId === mojoAuthUserId,
-    );
-  }
-
-  async linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null> {
-    const user = await this.getUserByEmail(email);
-    if (user) {
-      user.mojoAuthUserId = mojoAuthUserId;
-      user.authProvider = 'mojoauth';
-      this.users.set(user.id, user);
-      return user;
-    }
-    return null;
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    // Find existing user by replitId
-    const existingUser = await this.getUserByReplitId(userData.replitId!);
-    
-    if (existingUser) {
-      // Update existing user
-      const updatedUser = {
-        ...existingUser,
-        ...userData,
-        updatedAt: new Date(),
-      };
-      this.users.set(existingUser.id, updatedUser);
-      return updatedUser;
-    } else {
-      // Create new user
-      const id = this.userCurrentId++;
-      const user: User = { 
-        ...userData,
-        id,
-        username: null,
-        password: null,
-        name: null,
-        resetToken: null,
-        resetTokenExpiry: null,
-        authProvider: userData.authProvider || "replit",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.users.set(id, user);
-      return user;
-    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -187,6 +135,41 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
+    const id = this.userCurrentId++;
+    const user: User = {
+      id,
+      username: null,
+      password: null,
+      email,
+      name: name || null,
+      resetToken: null,
+      resetTokenExpiry: null,
+      mojoAuthId,
+      phone: phone || null,
+      authProvider: 'mojoauth',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    user.mojoAuthId = mojoAuthId;
+    user.phone = phone || null;
+    user.authProvider = 'hybrid';
+    user.updatedAt = new Date();
+    
+    this.users.set(userId, user);
+    console.log(`Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
   }
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
@@ -664,19 +647,9 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
     try {
-      const result = await this.executeQuery('SELECT * FROM users WHERE replit_id = $1', [replitId]);
-      return result.rows[0] || undefined;
-    } catch (error) {
-      console.error(`Error getting user by Replit ID ${replitId}:`, error);
-      return undefined;
-    }
-  }
-
-  async getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined> {
-    try {
-      const result = await this.executeQuery('SELECT * FROM users WHERE mojoauth_user_id = $1', [mojoAuthUserId]);
+      const result = await this.executeQuery('SELECT * FROM users WHERE mojoauth_id = $1', [mojoAuthId]);
       return result.rows[0] || undefined;
     } catch (error) {
       console.error(`Error getting user by MojoAuth ID:`, error);
@@ -684,110 +657,44 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null> {
-    try {
-      const result = await this.executeQuery(
-        'UPDATE users SET mojoauth_user_id = $1, auth_provider = $2 WHERE email = $3 RETURNING *',
-        [mojoAuthUserId, 'mojoauth', email]
-      );
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error linking MojoAuth to existing user:', error);
-      return null;
-    }
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    try {
-      // First, check if a user with this email already exists
-      const existingUser = await this.getUserByEmail(userData.email);
-      
-      if (existingUser) {
-        // Determine which fields to update based on auth provider
-        if (userData.authProvider === 'mojoauth') {
-          // Update with MojoAuth data
-          const result = await this.executeQuery(`
-            UPDATE users SET 
-              mojoauth_user_id = $1,
-              auth_provider = $2,
-              updated_at = NOW()
-            WHERE id = $3
-            RETURNING *
-          `, [
-            userData.mojoAuthUserId,
-            'mojoauth',
-            existingUser.id
-          ]);
-          return result.rows[0];
-        } else {
-          // Update with Replit Auth data
-          const result = await this.executeQuery(`
-            UPDATE users SET 
-              replit_id = $1,
-              first_name = $2,
-              last_name = $3,
-              profile_image_url = $4,
-              auth_provider = 'both',
-              updated_at = NOW()
-            WHERE id = $5
-            RETURNING *
-          `, [
-            userData.replitId,
-            userData.firstName,
-            userData.lastName,
-            userData.profileImageUrl,
-            existingUser.id
-          ]);
-          return result.rows[0];
-        }
-      } else {
-        // Create new user based on auth provider
-        if (userData.authProvider === 'mojoauth') {
-          // Create new user with MojoAuth data
-          const result = await this.executeQuery(`
-            INSERT INTO users (email, mojoauth_user_id, auth_provider, created_at, updated_at)
-            VALUES ($1, $2, $3, NOW(), NOW())
-            RETURNING *
-          `, [
-            userData.email,
-            userData.mojoAuthUserId,
-            'mojoauth'
-          ]);
-          return result.rows[0];
-        } else {
-          // Create new user with Replit Auth data
-          const result = await this.executeQuery(`
-            INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            RETURNING *
-          `, [
-            userData.replitId,
-            userData.email,
-            userData.firstName,
-            userData.lastName,
-            userData.profileImageUrl,
-            userData.authProvider || "replit"
-          ]);
-          return result.rows[0];
-        }
-      }
-    } catch (error) {
-      console.error('Error upserting user:', error);
-      throw error;
-    }
-  }
-
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
-        [username, password, email, name || null]
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, auth_provider) VALUES ($1, $2, $3, $4, NULL, NULL, $5) RETURNING *',
+        [username, password, email, name || null, 'local']
       );
       return result.rows[0];
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user. Please try again later.');
+    }
+  }
+
+  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
+    try {
+      const result = await this.executeQuery(
+        'INSERT INTO users (email, mojoauth_id, name, phone, auth_provider, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
+        [email, mojoAuthId, name || null, phone || null, 'mojoauth']
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating MojoAuth user:', error);
+      throw new Error('Failed to create MojoAuth user. Please try again later.');
+    }
+  }
+
+  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
+    try {
+      const result = await this.executeQuery(
+        'UPDATE users SET mojoauth_id = $1, phone = $2, auth_provider = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
+        [mojoAuthId, phone || null, 'hybrid', userId]
+      );
+      console.log(`✅ Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
+      console.log(`🔗 Updated user data:`, result.rows[0]);
+    } catch (error) {
+      console.error('❌ Error linking user with MojoAuth:', error);
+      throw new Error('Failed to link user with MojoAuth. Please try again later.');
     }
   }
 

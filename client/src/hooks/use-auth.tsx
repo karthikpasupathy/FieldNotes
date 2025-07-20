@@ -17,7 +17,6 @@ type AuthContextType = {
   registerMutation: UseMutationResult<User, Error, InsertUser>;
   resetPasswordRequestMutation: UseMutationResult<void, Error, { email: string }>;
   resetPasswordMutation: UseMutationResult<void, Error, { token: string; password: string }>;
-  refetchUser: () => Promise<any>;
 };
 
 type LoginData = {
@@ -33,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
-    refetch,
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
@@ -151,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registerMutation,
         resetPasswordRequestMutation,
         resetPasswordMutation,
-        refetchUser: refetch,
       }}
     >
       {children}

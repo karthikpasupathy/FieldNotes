@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, useLocation } from "wouter";
+import { Redirect, useLocation, Link } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, KeyRound, ArrowRight } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { MojoAuthComponent } from "@/components/mojoauth-component";
+import { Loader2, Mail, Shield, ArrowRight } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -35,8 +35,7 @@ const forgotPasswordSchema = z.object({
 export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, isLoading, loginMutation, registerMutation, resetPasswordRequestMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("passwordless");
-  const [showTraditionalAuth, setShowTraditionalAuth] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("login");
   
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -78,11 +77,6 @@ export default function AuthPage() {
     forgotPasswordForm.reset();
   };
 
-  const handlePasswordlessSuccess = () => {
-    // This will be called when MojoAuth authentication is successful
-    // The MojoAuthComponent will handle the redirect after successful login
-  };
-
   // Redirect if already logged in
   if (user && !isLoading) {
     return <Redirect to="/" />;
@@ -101,54 +95,46 @@ export default function AuthPage() {
               Daynotes
             </h1>
             <p className="mt-3 text-lg text-gray-600">
-              Track your daily observations with timestamps
+              Sign in securely to access your notes
             </p>
           </div>
 
-          {!showTraditionalAuth ? (
-            <div className="space-y-6">
-              {/* Passwordless Authentication (Primary) */}
-              <MojoAuthComponent onSuccess={handlePasswordlessSuccess} />
-
-              <div className="text-center space-y-4">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or</span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowTraditionalAuth(true)}
-                >
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  Use Username & Password
-                </Button>
+          {/* Passwordless Authentication - Primary Option */}
+          <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
+                <Shield className="h-6 w-6 text-primary" />
               </div>
+              <CardTitle className="text-lg">Passwordless Sign In</CardTitle>
+              <CardDescription>
+                Quick and secure authentication
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/mojoauth">
+                <Button className="w-full" size="lg">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Continue with Email
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-0 h-auto"
-                  onClick={() => setShowTraditionalAuth(false)}
-                >
-                  <ArrowRight className="h-4 w-4 rotate-180 mr-1" />
-                  Back to passwordless
-                </Button>
-              </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or use traditional login</span>
+            </div>
+          </div>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
-                  <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
-                  <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
-                </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
+              <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
+            </TabsList>
 
             <TabsContent value="login" className="space-y-4 mt-6">
               <Form {...loginForm}>
@@ -202,20 +188,6 @@ export default function AuthPage() {
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
-              </div>
-
-              <div className="mt-6">
-                <Separator className="my-4" />
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.location.href = "/api/replit/login"}
-                  >
-                    Sign in with Replit
-                  </Button>
-                </div>
               </div>
             </TabsContent>
 
@@ -308,20 +280,6 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
-
-              <div className="mt-6">
-                <Separator className="my-4" />
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.location.href = "/api/replit/login"}
-                  >
-                    Sign in with Replit
-                  </Button>
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="forgot-password" className="space-y-4 mt-6">
@@ -364,9 +322,7 @@ export default function AuthPage() {
                 </Button>
               </div>
             </TabsContent>
-              </Tabs>
-            </div>
-          )}
+          </Tabs>
         </div>
       </div>
 
