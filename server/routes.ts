@@ -349,22 +349,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("About to create session for user:", { id: user.id, email: user.email });
       
-      // Manually set the session data for better compatibility
-      req.session.passport = { user: { id: user.id, email: user.email } };
-      req.user = user;
-      
-      // Save the session explicitly
-      req.session.save((err) => {
+      // Use Passport's req.login() for proper session integration
+      req.login(user, (err) => {
         if (err) {
-          console.error("Session save error:", err);
+          console.error("Passport login error:", err);
           return res.status(500).json({ error: "Failed to create session" });
         }
         
-        console.log("Session saved successfully for user:", user.id);
+        console.log("✅ Passport session created successfully for user:", user.id);
         console.log("Session data:", { 
           sessionId: req.sessionID, 
-          passport: req.session.passport,
-          userId: req.user?.id 
+          isAuthenticated: req.isAuthenticated(),
+          userId: req.user?.id,
+          userEmail: req.user?.email
         });
         
         res.json({

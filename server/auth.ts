@@ -91,12 +91,23 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log("🔒 Serializing user:", user.id);
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("🔓 Deserializing user ID:", id);
       const user = await storage.getUser(id);
+      if (user) {
+        console.log("✅ User deserialized successfully:", { id: user.id, email: user.email });
+      } else {
+        console.log("❌ User not found during deserialization");
+      }
       done(null, user);
     } catch (error) {
+      console.error("❌ Deserialization error:", error);
       done(error);
     }
   });
