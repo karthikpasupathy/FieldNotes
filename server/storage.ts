@@ -27,8 +27,10 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   getUserByReplitId(replitId: string): Promise<User | undefined>;
+  getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -122,6 +124,23 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.replitId === replitId,
     );
+  }
+
+  async getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.mojoAuthUserId === mojoAuthUserId,
+    );
+  }
+
+  async linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null> {
+    const user = await this.getUserByEmail(email);
+    if (user) {
+      user.mojoAuthUserId = mojoAuthUserId;
+      user.authProvider = 'mojoauth';
+      this.users.set(user.id, user);
+      return user;
+    }
+    return null;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -655,46 +674,102 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async getUserByMojoAuthId(mojoAuthUserId: string): Promise<User | undefined> {
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE mojoauth_user_id = $1', [mojoAuthUserId]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user by MojoAuth ID:`, error);
+      return undefined;
+    }
+  }
+
+  async linkMojoAuthToExistingUser(email: string, mojoAuthUserId: string): Promise<User | null> {
+    try {
+      const result = await this.executeQuery(
+        'UPDATE users SET mojoauth_user_id = $1, auth_provider = $2 WHERE email = $3 RETURNING *',
+        [mojoAuthUserId, 'mojoauth', email]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error linking MojoAuth to existing user:', error);
+      return null;
+    }
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     try {
       // First, check if a user with this email already exists
       const existingUser = await this.getUserByEmail(userData.email);
       
       if (existingUser) {
-        // Update the existing user with Replit Auth data
-        const result = await this.executeQuery(`
-          UPDATE users SET 
-            replit_id = $1,
-            first_name = $2,
-            last_name = $3,
-            profile_image_url = $4,
-            auth_provider = 'both',
-            updated_at = NOW()
-          WHERE id = $5
-          RETURNING *
-        `, [
-          userData.replitId,
-          userData.firstName,
-          userData.lastName,
-          userData.profileImageUrl,
-          existingUser.id
-        ]);
-        return result.rows[0];
+        // Determine which fields to update based on auth provider
+        if (userData.authProvider === 'mojoauth') {
+          // Update with MojoAuth data
+          const result = await this.executeQuery(`
+            UPDATE users SET 
+              mojoauth_user_id = $1,
+              auth_provider = $2,
+              updated_at = NOW()
+            WHERE id = $3
+            RETURNING *
+          `, [
+            userData.mojoAuthUserId,
+            'mojoauth',
+            existingUser.id
+          ]);
+          return result.rows[0];
+        } else {
+          // Update with Replit Auth data
+          const result = await this.executeQuery(`
+            UPDATE users SET 
+              replit_id = $1,
+              first_name = $2,
+              last_name = $3,
+              profile_image_url = $4,
+              auth_provider = 'both',
+              updated_at = NOW()
+            WHERE id = $5
+            RETURNING *
+          `, [
+            userData.replitId,
+            userData.firstName,
+            userData.lastName,
+            userData.profileImageUrl,
+            existingUser.id
+          ]);
+          return result.rows[0];
+        }
       } else {
-        // Create new user with Replit Auth data
-        const result = await this.executeQuery(`
-          INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, NOW())
-          RETURNING *
-        `, [
-          userData.replitId,
-          userData.email,
-          userData.firstName,
-          userData.lastName,
-          userData.profileImageUrl,
-          userData.authProvider || "replit"
-        ]);
-        return result.rows[0];
+        // Create new user based on auth provider
+        if (userData.authProvider === 'mojoauth') {
+          // Create new user with MojoAuth data
+          const result = await this.executeQuery(`
+            INSERT INTO users (email, mojoauth_user_id, auth_provider, created_at, updated_at)
+            VALUES ($1, $2, $3, NOW(), NOW())
+            RETURNING *
+          `, [
+            userData.email,
+            userData.mojoAuthUserId,
+            'mojoauth'
+          ]);
+          return result.rows[0];
+        } else {
+          // Create new user with Replit Auth data
+          const result = await this.executeQuery(`
+            INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+            RETURNING *
+          `, [
+            userData.replitId,
+            userData.email,
+            userData.firstName,
+            userData.lastName,
+            userData.profileImageUrl,
+            userData.authProvider || "replit"
+          ]);
+          return result.rows[0];
+        }
       }
     } catch (error) {
       console.error('Error upserting user:', error);

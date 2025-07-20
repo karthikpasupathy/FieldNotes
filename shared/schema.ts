@@ -29,7 +29,9 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  authProvider: varchar("auth_provider").notNull().default("local"), // "local" or "replit"
+  // MojoAuth fields (new)
+  mojoAuthUserId: varchar("mojoauth_user_id").unique(),
+  authProvider: varchar("auth_provider").notNull().default("local"), // "local", "replit", or "mojoauth"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -68,7 +70,19 @@ export const upsertUserSchema = createInsertSchema(users).pick({
   firstName: true,
   lastName: true,
   profileImageUrl: true,
+  mojoAuthUserId: true,
   authProvider: true,
+});
+
+// MojoAuth schemas
+export const mojoAuthLoginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export const mojoAuthCallbackSchema = z.object({
+  access_token: z.string(),
+  user_id: z.string(),
+  identifier: z.string(),
 });
 
 export const insertNoteSchema = createInsertSchema(notes).pick({

@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, KeyRound, ArrowRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { MojoAuthComponent } from "@/components/mojoauth-component";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -34,7 +35,8 @@ const forgotPasswordSchema = z.object({
 export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, isLoading, loginMutation, registerMutation, resetPasswordRequestMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("login");
+  const [activeTab, setActiveTab] = useState<string>("passwordless");
+  const [showTraditionalAuth, setShowTraditionalAuth] = useState(false);
   
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -76,6 +78,11 @@ export default function AuthPage() {
     forgotPasswordForm.reset();
   };
 
+  const handlePasswordlessSuccess = () => {
+    // This will be called when MojoAuth authentication is successful
+    // The MojoAuthComponent will handle the redirect after successful login
+  };
+
   // Redirect if already logged in
   if (user && !isLoading) {
     return <Redirect to="/" />;
@@ -98,11 +105,62 @@ export default function AuthPage() {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
-              <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
-              <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
-            </TabsList>
+          {!showTraditionalAuth ? (
+            <div className="space-y-6">
+              {/* Passwordless Authentication (Primary) */}
+              <MojoAuthComponent onSuccess={handlePasswordlessSuccess} />
+
+              <div className="text-center space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or</span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowTraditionalAuth(true)}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Use Username & Password
+                </Button>
+
+                <Separator className="my-4" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/replit/login"}
+                  >
+                    Sign in with Replit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto"
+                  onClick={() => setShowTraditionalAuth(false)}
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180 mr-1" />
+                  Back to passwordless
+                </Button>
+              </div>
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
+                  <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
+                  <TabsTrigger value="register" className="rounded-md">Register</TabsTrigger>
+                </TabsList>
 
             <TabsContent value="login" className="space-y-4 mt-6">
               <Form {...loginForm}>
@@ -318,7 +376,9 @@ export default function AuthPage() {
                 </Button>
               </div>
             </TabsContent>
-          </Tabs>
+              </Tabs>
+            </div>
+          )}
         </div>
       </div>
 

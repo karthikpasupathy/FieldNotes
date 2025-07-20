@@ -228,6 +228,59 @@ export function setupAuth(app: Express) {
       next(error);
     }
   });
+
+  // MojoAuth passwordless authentication routes
+  app.post("/api/mojoauth/verify", async (req, res, next) => {
+    try {
+      const { access_token, user_id, identifier } = req.body;
+      
+      if (!access_token || !user_id || !identifier) {
+        return res.status(400).json({ message: "Missing required MojoAuth data" });
+      }
+
+      // Check if user already exists with this MojoAuth ID
+      let user = await storage.getUserByMojoAuthId(user_id);
+      
+      if (!user) {
+        // Check if user exists with this email (for account linking)
+        const existingUser = await storage.getUserByEmail(identifier);
+        
+        if (existingUser) {
+          // Link MojoAuth to existing account
+          user = await storage.linkMojoAuthToExistingUser(identifier, user_id);
+          if (!user) {
+            return res.status(500).json({ message: "Failed to link account" });
+          }
+        } else {
+          // Create new user with MojoAuth
+          user = await storage.upsertUser({
+            email: identifier,
+            mojoAuthUserId: user_id,
+            authProvider: "mojoauth",
+          });
+        }
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) return next(err);
+        // Return user without sensitive data
+        const { password, resetToken, resetTokenExpiry, ...userWithoutSensitiveData } = user;
+        res.status(200).json(userWithoutSensitiveData);
+      });
+    } catch (error) {
+      console.error('MojoAuth verification error:', error);
+      next(error);
+    }
+  });
+
+  // MojoAuth configuration endpoint
+  app.get("/api/mojoauth/config", (req, res) => {
+    res.json({
+      apiKey: process.env.MOJOAUTH_API_KEY || '',
+      redirectUrl: `${req.protocol}://${req.get('host')}`
+    });
+  });
 }
 
 export { hashPassword };
