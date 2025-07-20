@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Mail, Shield, ArrowRight } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -90,11 +92,42 @@ export default function AuthPage() {
               <img src="/icons/daynotes-logo.png" alt="Daynotes Logo" className="h-20 w-20" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-gray-900">
-              Daynotes
+              Field Notes
             </h1>
             <p className="mt-3 text-lg text-gray-600">
-              Track your daily observations with timestamps
+              Sign in securely to access your notes
             </p>
+          </div>
+
+          {/* Passwordless Authentication - Primary Option */}
+          <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Passwordless Sign In</CardTitle>
+              <CardDescription>
+                Quick and secure authentication
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/mojoauth">
+                <Button className="w-full" size="lg">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Continue with Email
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or use traditional login</span>
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -151,16 +184,10 @@ export default function AuthPage() {
                 </form>
               </Form>
 
-              <div className="text-center mt-4 space-y-2">
+              <div className="text-center mt-4">
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
-                <div className="text-sm text-gray-500">or</div>
-                <Link href="/mojoauth">
-                  <Button variant="outline" className="w-full">
-                    Sign in with Passwordless Auth
-                  </Button>
-                </Link>
               </div>
             </TabsContent>
 
