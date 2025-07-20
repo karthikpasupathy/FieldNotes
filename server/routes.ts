@@ -177,29 +177,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { stateId } = mojoAuthStatusSchema.parse(req.body);
       
       const response = await checkMagicLinkStatus(stateId);
+      console.log("MojoAuth magic link full response:", JSON.stringify(response, null, 2));
+      
+      // Check for MojoAuth error response
+      if (response.code) {
+        return res.status(400).json({ 
+          error: response.message || "Authentication failed",
+          description: response.description 
+        });
+      }
       
       if (response.authenticated) {
         // User successfully authenticated, handle user creation/login
+        if (!response.user) {
+          return res.status(400).json({ error: "Authentication failed - no user data" });
+        }
+        
         const mojoAuthUser = response.user;
+        console.log("MojoAuth user response:", JSON.stringify(mojoAuthUser, null, 2));
         
         // Check if user already exists by MojoAuth ID first
-        let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+        let user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
         
         if (!user) {
           // Check if user exists by email (traditional user)
-          user = await storage.getUserByEmail(mojoAuthUser.email);
+          user = await storage.getUserByEmail(mojoAuthUser.identifier);
           
           if (user) {
             // Link existing traditional user with MojoAuth
-            await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.id, mojoAuthUser.phone);
+            await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
             // Refetch user to get updated data
-            user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+            user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
           } else {
             // Create new MojoAuth user
             user = await storage.createMojoAuthUser(
-              mojoAuthUser.email,
-              mojoAuthUser.id,
-              mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+              mojoAuthUser.identifier,
+              mojoAuthUser.user_id,
+              mojoAuthUser.identifier.split('@')[0],
               mojoAuthUser.phone
             );
           }
@@ -256,26 +270,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { otp, stateId } = mojoAuthOTPSchema.parse(req.body);
       
       const response = await verifyEmailOTP(otp, stateId);
+      console.log("MojoAuth verifyEmailOTP full response:", JSON.stringify(response, null, 2));
+      
+      // Check for MojoAuth error response
+      if (response.code) {
+        return res.status(400).json({ 
+          error: response.message || "Authentication failed",
+          description: response.description 
+        });
+      }
+      
+      // Check for successful authentication
+      if (!response.authenticated || !response.user) {
+        return res.status(400).json({ error: "Authentication failed" });
+      }
+      
       const mojoAuthUser = response.user;
+      console.log("MojoAuth user response:", JSON.stringify(mojoAuthUser, null, 2));
       
       // Check if user already exists by MojoAuth ID first
-      let user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+      let user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
       
       if (!user) {
         // Check if user exists by email (traditional user)
-        user = await storage.getUserByEmail(mojoAuthUser.email);
+        user = await storage.getUserByEmail(mojoAuthUser.identifier);
         
         if (user) {
           // Link existing traditional user with MojoAuth
-          await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.id, mojoAuthUser.phone);
+          await storage.linkUserWithMojoAuth(user.id, mojoAuthUser.user_id, mojoAuthUser.phone);
           // Refetch user to get updated data
-          user = await storage.getUserByMojoAuthId(mojoAuthUser.id);
+          user = await storage.getUserByMojoAuthId(mojoAuthUser.user_id);
         } else {
           // Create new MojoAuth user
           user = await storage.createMojoAuthUser(
-            mojoAuthUser.email,
-            mojoAuthUser.id,
-            mojoAuthUser.name || mojoAuthUser.email.split('@')[0],
+            mojoAuthUser.identifier,
+            mojoAuthUser.user_id,
+            mojoAuthUser.identifier.split('@')[0],
             mojoAuthUser.phone
           );
         }

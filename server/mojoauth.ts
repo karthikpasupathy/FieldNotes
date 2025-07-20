@@ -33,8 +33,8 @@ initializeMojoAuth();
 
 // Interface for MojoAuth user
 export interface MojoAuthUser {
-  id: string;
-  email: string;
+  user_id: string;
+  identifier: string;
   phone?: string;
   created_at: string;
   updated_at: string;
@@ -81,6 +81,7 @@ export async function checkMagicLinkStatus(stateId: string): Promise<any> {
 
   try {
     const response = await ma.mojoAPI.pingStatus(stateId);
+    console.log("MojoAuth pingStatus response:", JSON.stringify(response, null, 2));
     return response;
   } catch (error) {
     console.error("Magic link status error:", error);
@@ -137,11 +138,22 @@ export async function verifyEmailOTP(otp: string, stateId: string): Promise<Auth
   }
 
   try {
+    // Try verifyEmailOTP first (standard method)
     const response = await ma.mojoAPI.verifyEmailOTP(otp, stateId);
+    console.log("MojoAuth verifyEmailOTP response:", JSON.stringify(response, null, 2));
     return response;
   } catch (error) {
     console.error("Email OTP verification error:", error);
-    throw error;
+    console.log("Trying alternative method verifyOTPWithStateId...");
+    try {
+      // Fallback to verifyOTPWithStateId if available
+      const response = await ma.mojoAPI.verifyOTPWithStateId({ otp, stateId });
+      console.log("MojoAuth verifyOTPWithStateId response:", JSON.stringify(response, null, 2));
+      return response;
+    } catch (fallbackError) {
+      console.error("Fallback method also failed:", fallbackError);
+      throw error; // throw the original error
+    }
   }
 }
 
