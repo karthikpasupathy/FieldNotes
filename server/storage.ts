@@ -5,6 +5,7 @@ import {
   users, 
   type User, 
   type InsertUser,
+  type UpsertUser,
   periodAnalyses,
   type PeriodAnalysis,
   type InsertPeriodAnalysis
@@ -25,7 +26,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  getUserByReplitId(replitId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -113,6 +116,45 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.resetToken === token,
     );
+  }
+
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.replitId === replitId,
+    );
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    // Find existing user by replitId
+    const existingUser = await this.getUserByReplitId(userData.replitId!);
+    
+    if (existingUser) {
+      // Update existing user
+      const updatedUser = {
+        ...existingUser,
+        ...userData,
+        updatedAt: new Date(),
+      };
+      this.users.set(existingUser.id, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      const id = this.userCurrentId++;
+      const user: User = { 
+        ...userData,
+        id,
+        username: null,
+        password: null,
+        name: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+        authProvider: userData.authProvider || "replit",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.users.set(id, user);
+      return user;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -600,6 +642,44 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error getting user by reset token:', error);
       return undefined;
+    }
+  }
+
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    try {
+      const result = await this.executeQuery('SELECT * FROM users WHERE replit_id = $1', [replitId]);
+      return result.rows[0] || undefined;
+    } catch (error) {
+      console.error(`Error getting user by Replit ID ${replitId}:`, error);
+      return undefined;
+    }
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    try {
+      const result = await this.executeQuery(`
+        INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (replit_id) 
+        DO UPDATE SET 
+          email = EXCLUDED.email,
+          first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
+          profile_image_url = EXCLUDED.profile_image_url,
+          updated_at = NOW()
+        RETURNING *
+      `, [
+        userData.replitId,
+        userData.email,
+        userData.firstName,
+        userData.lastName,
+        userData.profileImageUrl,
+        userData.authProvider || "replit"
+      ]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error upserting user:', error);
+      throw error;
     }
   }
 
