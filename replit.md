@@ -111,16 +111,15 @@ Preferred communication style: Simple, everyday language.
 
 The application is architected for scalability with clear separation of concerns, comprehensive error handling, and a focus on user experience through responsive design and PWA capabilities.
 
-## MojoAuth Integration - July 20, 2025
-- Integrated MojoAuth passwordless authentication system alongside existing local authentication
-- Added support for Email Magic Links, Email OTP, and Phone OTP authentication methods
-- Extended database schema to support MojoAuth users with mojoauth_id and auth_provider fields
-- Created comprehensive API endpoints for all MojoAuth authentication flows
-- Built dedicated MojoAuth authentication page with modern UI components
-- Implemented session compatibility between MojoAuth and existing authentication
-- Added MojoAuth route to main application with passwordless authentication options
-- Updated user storage interface to handle both local and MojoAuth user creation
-- Enhanced existing authentication page with option to use passwordless authentication
+## MojoAuth Removal - July 21, 2025
+- Completely removed MojoAuth passwordless authentication system
+- Reverted to traditional username/password authentication only
+- Removed MojoAuth-specific database columns (mojoauth_id, phone, auth_provider, created_at, updated_at)
+- Deleted MojoAuth API endpoints and associated server-side logic
+- Removed MojoAuth authentication page and UI components
+- Cleaned up storage interface by removing MojoAuth-related methods
+- Uninstalled mojoauth-sdk dependency from package.json
+- Updated authentication page to show only traditional login/register forms
 
 ## Bug Fixes - July 20, 2025
 - Fixed database schema mismatch in sync functions (removed non-existent columns like is_admin, created_at from users)
@@ -134,12 +133,3 @@ The application is architected for scalability with clear separation of concerns
 - Enhanced database health check error logging
 - Added proper error boundaries around main React application
 
-## MojoAuth Bug Fixes - July 20, 2025
-- Fixed MojoAuth user response structure mapping (user_id vs id, identifier vs email)
-- Fixed MojoAuth error response handling to properly distinguish between errors and successful authentication
-- Resolved "email already exists" issue by implementing automatic account linking for existing users
-- Fixed session creation failures in MojoAuth authentication flow
-- Added comprehensive error handling for all MojoAuth authentication methods
-- Implemented linkUserWithMojoAuth functionality in both PostgreSQL and MemStorage
-- Enhanced debugging and logging for MojoAuth API responses
-- Successfully enabled dual authentication system (traditional + passwordless) for all users

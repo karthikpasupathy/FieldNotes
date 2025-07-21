@@ -10,12 +10,6 @@ export const users = pgTable("users", {
   name: text("name"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
-  // MojoAuth specific fields
-  mojoAuthId: text("mojoauth_id").unique(),
-  phone: text("phone"),
-  authProvider: text("auth_provider").default("local"), // "local" or "mojoauth"
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const notes = pgTable("notes", {
@@ -44,9 +38,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   email: true,
   name: true,
-  mojoAuthId: true,
-  phone: true,
-  authProvider: true,
 });
 
 export const insertNoteSchema = createInsertSchema(notes).pick({
@@ -68,27 +59,8 @@ export const userLoginSchema = z.object({
 });
 
 export const userRegisterSchema = insertUserSchema.extend({
-  password: z.string().min(6).optional(),
+  password: z.string().min(6),
   email: z.string().email(),
-});
-
-// MojoAuth specific schemas
-export const mojoAuthEmailSchema = z.object({
-  email: z.string().email(),
-  redirectUrl: z.string().url().optional(),
-});
-
-export const mojoAuthPhoneSchema = z.object({
-  phone: z.string().regex(/^\+\d{1,3}\d{4,14}$/, "Phone must be in international format (e.g., +1234567890)"),
-});
-
-export const mojoAuthOTPSchema = z.object({
-  otp: z.string().length(6, "OTP must be 6 digits"),
-  stateId: z.string(),
-});
-
-export const mojoAuthStatusSchema = z.object({
-  stateId: z.string(),
 });
 
 export const resetPasswordSchema = z.object({

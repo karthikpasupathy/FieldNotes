@@ -25,10 +25,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
-  getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User>;
-  linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -118,17 +115,15 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.mojoAuthId === mojoAuthId,
-    );
-  }
+
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
-      ...insertUser, 
       id,
+      username: insertUser.username || null,
+      password: insertUser.password || null,
+      email: insertUser.email,
       name: insertUser.name || null,
       resetToken: null,
       resetTokenExpiry: null 
@@ -137,40 +132,7 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = {
-      id,
-      username: null,
-      password: null,
-      email,
-      name: name || null,
-      resetToken: null,
-      resetTokenExpiry: null,
-      mojoAuthId,
-      phone: phone || null,
-      authProvider: 'mojoauth',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.users.set(id, user);
-    return user;
-  }
 
-  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
-    const user = this.users.get(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-    
-    user.mojoAuthId = mojoAuthId;
-    user.phone = phone || null;
-    user.authProvider = 'hybrid';
-    user.updatedAt = new Date();
-    
-    this.users.set(userId, user);
-    console.log(`Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
-  }
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
     const user = await this.getUser(userId);
@@ -210,11 +172,14 @@ export class MemStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const id = this.noteCurrentId++;
     const note: Note = { 
-      ...insertNote, 
       id, 
+      content: insertNote.content,
+      date: insertNote.date,
+      userId: insertNote.userId,
       timestamp: new Date(),
       analysis: null,
-      isMoment: insertNote.isMoment || false
+      isMoment: insertNote.isMoment || false,
+      isIdea: insertNote.isIdea || false
     };
     this.notes.set(id, note);
     return note;
@@ -647,15 +612,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getUserByMojoAuthId(mojoAuthId: string): Promise<User | undefined> {
-    try {
-      const result = await this.executeQuery('SELECT * FROM users WHERE mojoauth_id = $1', [mojoAuthId]);
-      return result.rows[0] || undefined;
-    } catch (error) {
-      console.error(`Error getting user by MojoAuth ID:`, error);
-      return undefined;
-    }
-  }
+
 
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
@@ -671,32 +628,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createMojoAuthUser(email: string, mojoAuthId: string, name?: string, phone?: string): Promise<User> {
-    try {
-      const result = await this.executeQuery(
-        'INSERT INTO users (email, mojoauth_id, name, phone, auth_provider, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
-        [email, mojoAuthId, name || null, phone || null, 'mojoauth']
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating MojoAuth user:', error);
-      throw new Error('Failed to create MojoAuth user. Please try again later.');
-    }
-  }
 
-  async linkUserWithMojoAuth(userId: number, mojoAuthId: string, phone?: string): Promise<void> {
-    try {
-      const result = await this.executeQuery(
-        'UPDATE users SET mojoauth_id = $1, phone = $2, auth_provider = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
-        [mojoAuthId, phone || null, 'hybrid', userId]
-      );
-      console.log(`✅ Successfully linked user ${userId} with MojoAuth ID ${mojoAuthId}`);
-      console.log(`🔗 Updated user data:`, result.rows[0]);
-    } catch (error) {
-      console.error('❌ Error linking user with MojoAuth:', error);
-      throw new Error('Failed to link user with MojoAuth. Please try again later.');
-    }
-  }
 
   async updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void> {
     try {

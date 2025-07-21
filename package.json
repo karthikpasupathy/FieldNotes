@@ -62,7 +62,6 @@
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",
-    "mojoauth-sdk": "^1.4.3",
     "openai": "^4.90.0",
     "openid-client": "^6.6.2",
     "passport": "^0.7.0",
