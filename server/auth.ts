@@ -76,6 +76,10 @@ export function setupAuth(app: Express) {
         
         // Debug password comparison
         console.log('Attempting to verify password');
+        if (!user.password) {
+          console.log('User has no password set');
+          return done(null, false, { message: "Invalid username or password" });
+        }
         const isValid = await comparePasswords(password, user.password);
         console.log('Password valid:', isValid);
         

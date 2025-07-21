@@ -618,8 +618,8 @@ export class PostgresStorage implements IStorage {
     const { username, password, email, name } = user;
     try {
       const result = await this.executeQuery(
-        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry, auth_provider) VALUES ($1, $2, $3, $4, NULL, NULL, $5) RETURNING *',
-        [username, password, email, name || null, 'local']
+        'INSERT INTO users (username, password, email, name, reset_token, reset_token_expiry) VALUES ($1, $2, $3, $4, NULL, NULL) RETURNING *',
+        [username, password, email, name || null]
       );
       return result.rows[0];
     } catch (error) {
