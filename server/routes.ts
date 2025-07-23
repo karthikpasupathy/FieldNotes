@@ -870,6 +870,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all moments for the user
+  app.get("/api/moments", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const moments = await storage.getMoments(userId);
+      res.json(moments);
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+      res.status(500).json({ message: "Failed to fetch moments" });
+    }
+  });
+
+  // Toggle moment status for a note
+  app.post("/api/moments/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId);
+      const userId = req.user!.id;
+      
+      if (isNaN(noteId)) {
+        return res.status(400).json({ message: "Invalid note ID" });
+      }
+      
+      const result = await storage.toggleMoment(noteId, userId);
+      
+      if (!result.success) {
+        return res.status(404).json({ message: "Note not found or access denied" });
+      }
+      
+      res.json({ 
+        noteId, 
+        isNowMoment: result.isNowMoment,
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error toggling moment:", error);
+      res.status(500).json({ message: "Failed to toggle moment status" });
+    }
+  });
+
+  // Get all ideas for the user
+  app.get("/api/ideas", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const ideas = await storage.getIdeas(userId);
+      res.json(ideas);
+    } catch (error) {
+      console.error("Error fetching ideas:", error);
+      res.status(500).json({ message: "Failed to fetch ideas" });
+    }
+  });
+
+  // Toggle idea status for a note
+  app.post("/api/ideas/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId);
+      const userId = req.user!.id;
+      
+      if (isNaN(noteId)) {
+        return res.status(400).json({ message: "Invalid note ID" });
+      }
+      
+      const result = await storage.toggleIdea(noteId, userId);
+      
+      if (!result.success) {
+        return res.status(404).json({ message: "Note not found or access denied" });
+      }
+      
+      res.json({ 
+        noteId, 
+        isNowIdea: result.isNowIdea,
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error toggling idea:", error);
+      res.status(500).json({ message: "Failed to toggle idea status" });
+    }
+  });
+
   app.get("/api/analyze-moments", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
