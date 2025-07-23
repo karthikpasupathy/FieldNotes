@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -94,11 +94,9 @@ export default function AuthPage() {
               Daynotes
             </h1>
             <p className="mt-3 text-lg text-gray-600">
-              Sign in securely to access your notes
+              Track your daily observations with timestamps
             </p>
           </div>
-
-
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-100">
@@ -158,6 +156,20 @@ export default function AuthPage() {
                 <Button variant="link" onClick={() => setActiveTab("forgot-password")}>
                   Forgot password?
                 </Button>
+              </div>
+
+              <div className="mt-6">
+                <Separator className="my-4" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/replit/login"}
+                  >
+                    Sign in with Replit
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
@@ -250,6 +262,20 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+
+              <div className="mt-6">
+                <Separator className="my-4" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/replit/login"}
+                  >
+                    Sign in with Replit
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="forgot-password" className="space-y-4 mt-6">

@@ -33,10 +33,12 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: Drizzle Kit for schema migrations
 
 ### Authentication System
-- **Strategy**: Local username/password authentication
-- **Password Security**: Scrypt hashing with random salt
-- **Session Management**: Server-side sessions stored in PostgreSQL
-- **Authorization**: Route-level protection with middleware
+- **Dual Authentication**: Both local username/password and Replit Auth (OpenID Connect)
+- **Local Auth**: Scrypt hashing with random salt for password security
+- **Replit Auth**: OpenID Connect integration with Replit's identity provider
+- **Session Management**: Server-side sessions stored in PostgreSQL with PostgreSQL session store
+- **Authorization**: Enhanced middleware supporting both authentication methods
+- **User Data**: Unified user model supporting both local and Replit user attributes
 
 ### AI Integration
 - **Provider**: OpenAI GPT-4.1-mini
@@ -111,17 +113,9 @@ Preferred communication style: Simple, everyday language.
 
 The application is architected for scalability with clear separation of concerns, comprehensive error handling, and a focus on user experience through responsive design and PWA capabilities.
 
-## MojoAuth Removal - July 21, 2025
-- Completely removed MojoAuth passwordless authentication system
-- Reverted to traditional username/password authentication only
-- Removed MojoAuth-specific database columns (mojoauth_id, phone, auth_provider, created_at, updated_at)
-- Deleted MojoAuth API endpoints and associated server-side logic
-- Removed MojoAuth authentication page and UI components
-- Cleaned up storage interface by removing MojoAuth-related methods
-- Uninstalled mojoauth-sdk dependency from package.json
-- Updated authentication page to show only traditional login/register forms
+## Recent Changes - July 20, 2025
 
-## Bug Fixes - July 20, 2025
+### Bug Fixes
 - Fixed database schema mismatch in sync functions (removed non-existent columns like is_admin, created_at from users)
 - Added missing is_idea column to notes table synchronization
 - Fixed authentication middleware to properly check for req.user existence
@@ -133,3 +127,13 @@ The application is architected for scalability with clear separation of concerns
 - Enhanced database health check error logging
 - Added proper error boundaries around main React application
 
+### Replit Auth Integration
+- Implemented dual authentication system supporting both local credentials and Replit Auth
+- Enhanced database schema with additional fields for Replit user data (replit_id, first_name, last_name, profile_image_url, auth_provider)
+- Created sessions table for PostgreSQL session store required by Replit Auth
+- Added Replit OpenID Connect authentication with automatic user provisioning
+- Updated authentication middleware to handle both local and Replit Auth sessions
+- Enhanced user profile component to support Replit user data and profile images
+- Added "Sign in with Replit" option to authentication page
+- Implemented separate logout flows for local and Replit authentication methods
+- Preserved existing user data and functionality while adding new authentication option
