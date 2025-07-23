@@ -1,12 +1,11 @@
-import { pgTable, text, serial, integer, timestamp, varchar, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User storage table - local auth only
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").unique(),
-  password: text("password"),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   email: text("email").notNull().unique(),
   name: text("name"),
   resetToken: text("reset_token"),

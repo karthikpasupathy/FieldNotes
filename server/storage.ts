@@ -115,15 +115,11 @@ export class MemStorage implements IStorage {
     );
   }
 
-
-
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
+      ...insertUser, 
       id,
-      username: insertUser.username || null,
-      password: insertUser.password || null,
-      email: insertUser.email,
       name: insertUser.name || null,
       resetToken: null,
       resetTokenExpiry: null 
@@ -170,14 +166,11 @@ export class MemStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const id = this.noteCurrentId++;
     const note: Note = { 
-      id,
-      content: insertNote.content,
-      date: insertNote.date,
-      userId: insertNote.userId,
+      ...insertNote, 
+      id, 
       timestamp: new Date(),
       analysis: null,
-      isMoment: insertNote.isMoment || false,
-      isIdea: insertNote.isIdea || false
+      isMoment: insertNote.isMoment || false
     };
     this.notes.set(id, note);
     return note;
@@ -609,8 +602,6 @@ export class PostgresStorage implements IStorage {
       return undefined;
     }
   }
-
-
 
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;
