@@ -5,7 +5,6 @@ import {
   users, 
   type User, 
   type InsertUser,
-  type UpsertUser,
   periodAnalyses,
   type PeriodAnalysis,
   type InsertPeriodAnalysis
@@ -26,9 +25,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
-  getUserByReplitId(replitId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
   updateUserResetToken(userId: number, token: string, expiry: Date): Promise<void>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   getNotesByDate(date: string, userId?: number): Promise<Note[]>;
@@ -118,50 +115,15 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.replitId === replitId,
-    );
-  }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    // Find existing user by replitId
-    const existingUser = await this.getUserByReplitId(userData.replitId!);
-    
-    if (existingUser) {
-      // Update existing user
-      const updatedUser = {
-        ...existingUser,
-        ...userData,
-        updatedAt: new Date(),
-      };
-      this.users.set(existingUser.id, updatedUser);
-      return updatedUser;
-    } else {
-      // Create new user
-      const id = this.userCurrentId++;
-      const user: User = { 
-        ...userData,
-        id,
-        username: null,
-        password: null,
-        name: null,
-        resetToken: null,
-        resetTokenExpiry: null,
-        authProvider: userData.authProvider || "replit",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.users.set(id, user);
-      return user;
-    }
-  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
-      ...insertUser, 
       id,
+      username: insertUser.username || null,
+      password: insertUser.password || null,
+      email: insertUser.email,
       name: insertUser.name || null,
       resetToken: null,
       resetTokenExpiry: null 
@@ -208,11 +170,14 @@ export class MemStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const id = this.noteCurrentId++;
     const note: Note = { 
-      ...insertNote, 
-      id, 
+      id,
+      content: insertNote.content,
+      date: insertNote.date,
+      userId: insertNote.userId,
       timestamp: new Date(),
       analysis: null,
-      isMoment: insertNote.isMoment || false
+      isMoment: insertNote.isMoment || false,
+      isIdea: insertNote.isIdea || false
     };
     this.notes.set(id, note);
     return note;
@@ -645,62 +610,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
-    try {
-      const result = await this.executeQuery('SELECT * FROM users WHERE replit_id = $1', [replitId]);
-      return result.rows[0] || undefined;
-    } catch (error) {
-      console.error(`Error getting user by Replit ID ${replitId}:`, error);
-      return undefined;
-    }
-  }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    try {
-      // First, check if a user with this email already exists
-      const existingUser = await this.getUserByEmail(userData.email);
-      
-      if (existingUser) {
-        // Update the existing user with Replit Auth data
-        const result = await this.executeQuery(`
-          UPDATE users SET 
-            replit_id = $1,
-            first_name = $2,
-            last_name = $3,
-            profile_image_url = $4,
-            auth_provider = 'both',
-            updated_at = NOW()
-          WHERE id = $5
-          RETURNING *
-        `, [
-          userData.replitId,
-          userData.firstName,
-          userData.lastName,
-          userData.profileImageUrl,
-          existingUser.id
-        ]);
-        return result.rows[0];
-      } else {
-        // Create new user with Replit Auth data
-        const result = await this.executeQuery(`
-          INSERT INTO users (replit_id, email, first_name, last_name, profile_image_url, auth_provider, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, NOW())
-          RETURNING *
-        `, [
-          userData.replitId,
-          userData.email,
-          userData.firstName,
-          userData.lastName,
-          userData.profileImageUrl,
-          userData.authProvider || "replit"
-        ]);
-        return result.rows[0];
-      }
-    } catch (error) {
-      console.error('Error upserting user:', error);
-      throw error;
-    }
-  }
 
   async createUser(user: InsertUser): Promise<User> {
     const { username, password, email, name } = user;

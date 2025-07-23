@@ -157,20 +157,6 @@ export default function AuthPage() {
                   Forgot password?
                 </Button>
               </div>
-
-              <div className="mt-6">
-                <Separator className="my-4" />
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-3">Or continue with</p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.location.href = "/api/replit/login"}
-                  >
-                    Sign in with Replit
-                  </Button>
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4 mt-6">
